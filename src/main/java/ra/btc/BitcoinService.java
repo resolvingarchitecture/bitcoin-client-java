@@ -1,18 +1,11 @@
 package ra.btc;
 
-import ra.common.BaseService;
-import ra.common.DLC;
-import ra.common.MessageProducer;
-import ra.common.ServiceStatus;
-import ra.common.ServiceStatusListener;
 import ra.common.Envelope;
+import ra.common.messaging.MessageProducer;
 import ra.common.route.Route;
-import ra.btc.blockchain.BlockChain;
-import ra.btc.blockstore.BlockStore;
-import ra.btc.config.BitcoinConfig;
-import ra.btc.network.*;
-import ra.btc.requests.SendRequest;
-import ra.btc.wallet.Wallet;
+import ra.common.service.BaseService;
+import ra.common.service.ServiceStatus;
+import ra.common.service.ServiceStatusObserver;
 
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -27,18 +20,13 @@ public class BitcoinService extends BaseService {
 
     public static final String OPERATION_SEND = "SEND";
 
-    private BlockChain blockChain;
-    private BlockStore blockStore;
-    private BitcoinPeerDiscovery peerDiscovery;
-    private Wallet wallet;
 
-    private BitcoinConfig config;
 
     public BitcoinService() {
     }
 
-    public BitcoinService(MessageProducer producer, ServiceStatusListener listener) {
-        super(producer, listener);
+    public BitcoinService(MessageProducer producer, ServiceStatusObserver observer) {
+        super(producer, observer);
     }
 
     @Override
@@ -47,10 +35,7 @@ public class BitcoinService extends BaseService {
         String operation = route.getOperation();
         switch(operation) {
             case OPERATION_SEND: {
-                SendRequest request = (SendRequest)DLC.getData(SendRequest.class,e);
-//                if(!bitcoin.send(request)) {
-//                    LOG.warning("Issue sending BTC to "+request.base58To);
-//                }
+
                 break;
             }
             default: deadLetter(e); // Operation not supported

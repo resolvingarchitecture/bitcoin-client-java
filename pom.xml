@@ -3,9 +3,9 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-    <groupId>ra</groupId>
+    <groupId>resolvingarchitecture</groupId>
 	<artifactId>btc</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.1-SNAPSHOT</version>
 
 	<packaging>jar</packaging>
 
@@ -16,7 +16,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>1.8</java.version>
+		<java.version>1.11</java.version>
 	</properties>
 
 	<developers>
@@ -44,10 +44,18 @@
 		<dependency>
 			<groupId>resolvingarchitecture</groupId>
 			<artifactId>common</artifactId>
-			<version>1.0.0</version>
+			<version>1.0.1</version>
 		</dependency>
 
-		<!-- Test -->
+        <!-- https://mvnrepository.com/artifact/org.bitcoinj/bitcoinj-core -->
+        <dependency>
+            <groupId>org.bitcoinj</groupId>
+            <artifactId>bitcoinj-core</artifactId>
+            <version>0.15.9</version>
+        </dependency>
+
+
+        <!-- Test -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -81,28 +89,6 @@
 		</resources>
 		<pluginManagement>
 			<plugins>
-				<!--<plugin>-->
-					<!--<groupId>org.apache.maven.plugins</groupId>-->
-					<!--<artifactId>maven-project-info-reports-plugin</artifactId>-->
-					<!--<version>2.8.1</version>-->
-				<!--</plugin>-->
-				<!--<plugin>-->
-					<!--<groupId>org.apache.maven.plugins</groupId>-->
-					<!--<artifactId>maven-assembly-plugin</artifactId>-->
-					<!--<version>2.5.5</version>-->
-				<!--</plugin>-->
-				<!--<plugin>-->
-					<!--<artifactId>maven-antrun-plugin</artifactId>-->
-					<!--<version>1.8</version>-->
-				<!--</plugin>-->
-				<!--<plugin>-->
-					<!--<artifactId>maven-dependency-plugin</artifactId>-->
-					<!--<version>2.10</version>-->
-				<!--</plugin>-->
-				<!--<plugin>-->
-					<!--<artifactId>maven-release-plugin</artifactId>-->
-					<!--<version>2.5.2</version>-->
-				<!--</plugin>-->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
@@ -122,14 +108,6 @@
 					<target>${java.version}</target>
 				</configuration>
 			</plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.openjfx</groupId>-->
-<!--                <artifactId>javafx-maven-plugin</artifactId>-->
-<!--                <version>0.0.4</version>-->
-<!--                <configuration>-->
-<!--                    <mainClass>io.onemfive.OneMFivePlatform</mainClass>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<executions>
@@ -151,34 +129,7 @@
 					</descriptorRefs>
 				</configuration>
 			</plugin>
-<!--			<plugin>-->
-<!--				<groupId>org.apache.maven.plugins</groupId>-->
-<!--				<artifactId>maven-project-info-reports-plugin</artifactId>-->
-<!--			</plugin>-->
 		</plugins>
 	</build>
-
-	<!--<reporting>-->
-		<!--<plugins>-->
-			<!--<plugin>-->
-				<!--<groupId>org.apache.maven.plugins</groupId>-->
-				<!--<artifactId>maven-project-info-reports-plugin</artifactId>-->
-				<!--<version>2.8.1</version>-->
-				<!--<reportSets>-->
-					<!--<reportSet>-->
-						<!--<reports>-->
-							<!--<report>dependencies</report>-->
-							<!--<report>project-team</report>-->
-							<!--&lt;!&ndash;<report>mailing-list</report> &ndash;&gt;-->
-							<!--&lt;!&ndash;<report>cim</report> &ndash;&gt;-->
-							<!--&lt;!&ndash;<report>issue-tracking</report> &ndash;&gt;-->
-							<!--<report>license</report>-->
-							<!--<report>scm</report>-->
-						<!--</reports>-->
-					<!--</reportSet>-->
-				<!--</reportSets>-->
-			<!--</plugin>-->
-		<!--</plugins>-->
-	<!--</reporting>-->
 
 </project>
