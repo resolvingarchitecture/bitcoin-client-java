@@ -1,23 +1,16 @@
 package ra.btc;
 
-import ra.btc.rpc.GetBlockchainInfo;
 import ra.btc.rpc.GetDifficulty;
-import ra.btc.rpc.RPCCommand;
 import ra.btc.rpc.RPCResponse;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
-import ra.common.route.ExternalRoute;
 import ra.common.route.Route;
-import ra.common.route.SimpleExternalRoute;
 import ra.common.service.BaseService;
 import ra.common.service.ServiceStatus;
 import ra.common.service.ServiceStatusObserver;
-import ra.util.Wait;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -47,10 +40,11 @@ public class BitcoinService extends BaseService {
     public static final String OPERATION_CREATE_WALLET = "CREATE_WALLET";
 
     // Response
-    public static final String OPERATION_RESPONSE = "RESPONSE";
+    public static final String OPERATION_RPC_RESPONSE = "RPC_RESPONSE";
 
     public static URL rpcUrl;
 
+    private boolean localBTCNode = false;
     private BitcoinInfo info = new BitcoinInfo();
 
     public BitcoinService() {
@@ -65,15 +59,18 @@ public class BitcoinService extends BaseService {
         Route route = e.getRoute();
         String operation = route.getOperation();
         switch(operation) {
-            case OPERATION_RESPONSE: {
+            case OPERATION_RPC_RESPONSE: {
                 Object obj = e.getContent();
                 if(obj!=null) {
                     RPCResponse response = new RPCResponse();
                     response.fromJSON(new String((byte[])obj));
                     switch (response.id) {
                         case GetDifficulty.NAME: {
-                            info.difficulty = (double)response.result;
-                            LOG.info("Difficulty: "+info.difficulty);
+                            if(response.result instanceof Double) {
+                                info.difficulty = (double) response.result;
+                                localBTCNode = true;
+                                LOG.info("Difficulty: " + info.difficulty + "; local node verified running.");
+                            }
                             break;
                         }
                     }
@@ -94,7 +91,9 @@ public class BitcoinService extends BaseService {
             LOG.severe(e.getLocalizedMessage());
             return false;
         }
+        // Send to verify a local node is running
         send(new GetDifficulty().buildEnvelope());
+
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
         return true;

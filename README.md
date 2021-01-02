@@ -18,15 +18,23 @@ local Tor proxy at least for inter-Bitcoin-node communications.
 * objectorange (Brian Taylor) - [GitHub](https://github.com/objectorange) | [LinkedIn](https://www.linkedin.com/in/decentralizationarchitect/) | brian@resolvingarchitecture.io PGP: 2FA3 9B12 DA50 BD7C E43C 3031 A15D FABB 2579 77DC
 
 ## Design
-[BitcoinService](src/main/java/ra/btc/BitcoinService.java) is designed to work with the RA Service Bus.
+BitcoinService is designed to work with the RA Service Bus. It sends and expects to receive messages using it.
+It currently depends on the ra.http.HTTPService running as a client only (for local Bitcoin node RPC).
 
-[BitcoinJ](https://bitcoinj.org/) is embedded in the service. It creates a Bitcoin node implemented in Java
-on your machine and connects out using HTTP and Tor on its own terms.
-This is undesirable with this Bitcoin Client as a service as we want to focus all communications through registered
-network services to minimize leakage while maintaining the ability to re-route failed routes via a Network Manager service
-while also supporting a full node locally without having to maintain the Java code BUT it's much faster integrating
-with Bitcoin using this library. So, embedding it is supported while opening the future to support an RPC to local Bitcoin
-Core node directly through RPC (started).
+[BitcoinJ](https://bitcoinj.org/) was evaluated to be embedded in the service. It creates a Bitcoin node implemented in Java
+on your machine and connects out using DNS (TCP), HTTP, and Tor on its own terms. This is undesirable with this Bitcoin Client
+as a service as we want to focus all communications through our own network services to minimize leakage while
+maintaining the ability to re-route failed routes via a Network Manager service while also supporting a full/pruned node
+locally without having to maintain the Java code in-sync with future Bitcoin work (what if BitcoinJ becomes stagnant).
+In addition, BitcoinJ adds a considerable amount of complexity requiring a great deal of dependency on its codebase and
+is tied to Google libraries and copyrighted by Google.
+
+Bitcoin JSON-RPC interface is used for all communications to the local Bitcoin node.
+
+Local Bitcoin node can be a full node or a pruned node. Open payment channels that will be dereferenced upon pruning
+will be lost due to de-referencing. It's recommended to keep the pruning to a minimal by supporting the largest bitcoin
+node size possible. Future versions of this component will provide auto closing of payments channels that would be affected
+by a prune.
 
 ## Implementation
 

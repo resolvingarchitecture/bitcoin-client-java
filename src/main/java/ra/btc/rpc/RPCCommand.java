@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static ra.btc.BitcoinService.OPERATION_RESPONSE;
+import static ra.btc.BitcoinService.OPERATION_RPC_RESPONSE;
 
 public abstract class RPCCommand implements JSONSerializable {
 
@@ -32,7 +32,7 @@ public abstract class RPCCommand implements JSONSerializable {
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
         e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
         e.addContent(this.toJSON());
-        e.addRoute(BitcoinService.class.getName(), OPERATION_RESPONSE);
+        e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
         e.addExternalRoute("ra.http.HTTPService", "SEND");
         e.ratchet();
         return e;
