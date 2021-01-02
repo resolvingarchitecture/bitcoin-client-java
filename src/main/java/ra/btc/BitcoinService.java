@@ -1,12 +1,23 @@
 package ra.btc;
 
+import ra.btc.rpc.GetBlockchainInfo;
+import ra.btc.rpc.GetDifficulty;
+import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.RPCResponse;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
+import ra.common.route.ExternalRoute;
 import ra.common.route.Route;
+import ra.common.route.SimpleExternalRoute;
 import ra.common.service.BaseService;
 import ra.common.service.ServiceStatus;
 import ra.common.service.ServiceStatusObserver;
+import ra.util.Wait;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -18,9 +29,29 @@ public class BitcoinService extends BaseService {
 
     private static final Logger LOG = Logger.getLogger(BitcoinService.class.getName());
 
-    public static final String OPERATION_SEND = "SEND";
+    public static final String LOCAL_RPC_HOST = "http://127.0.0.1:";
+    public static final Integer LOCAL_RPC_PORT = 8332;
 
+    public static final Integer MAIN_NET_PORT = 8333;
+    public static final Integer TEST_NET_PORT = 18333;
+    public static final Integer REG_TEST_PORT = 18444;
 
+    public static final String AUTHN = "Basic cmE6MTIzNA==";
+
+    // Ops
+    public static final String OPERATION_VERIFY_RPC = "VERIFY_RPC";
+
+    // Control
+
+    // Wallet
+    public static final String OPERATION_CREATE_WALLET = "CREATE_WALLET";
+
+    // Response
+    public static final String OPERATION_RESPONSE = "RESPONSE";
+
+    public static URL rpcUrl;
+
+    private BitcoinInfo info = new BitcoinInfo();
 
     public BitcoinService() {
     }
@@ -34,8 +65,19 @@ public class BitcoinService extends BaseService {
         Route route = e.getRoute();
         String operation = route.getOperation();
         switch(operation) {
-            case OPERATION_SEND: {
-
+            case OPERATION_RESPONSE: {
+                Object obj = e.getContent();
+                if(obj!=null) {
+                    RPCResponse response = new RPCResponse();
+                    response.fromJSON(new String((byte[])obj));
+                    switch (response.id) {
+                        case GetDifficulty.NAME: {
+                            info.difficulty = (double)response.result;
+                            LOG.info("Difficulty: "+info.difficulty);
+                            break;
+                        }
+                    }
+                }
                 break;
             }
             default: deadLetter(e); // Operation not supported
@@ -46,7 +88,13 @@ public class BitcoinService extends BaseService {
     public boolean start(Properties p) {
         LOG.info("Starting....");
         updateStatus(ServiceStatus.STARTING);
-
+        try {
+            rpcUrl = new URL(LOCAL_RPC_HOST+LOCAL_RPC_PORT);
+        } catch (MalformedURLException e) {
+            LOG.severe(e.getLocalizedMessage());
+            return false;
+        }
+        send(new GetDifficulty().buildEnvelope());
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
         return true;
@@ -81,18 +129,14 @@ public class BitcoinService extends BaseService {
             String[] nvp = arg.split("=");
             props.put(nvp[0],nvp[1]);
         }
-        if(service.start(props)) {
-            while(service.getServiceStatus() != ServiceStatus.SHUTDOWN) {
-                try {
-                    synchronized (service) {
-                        service.wait(2 * 1000);
-                    }
-                } catch (InterruptedException e) {
-                    System.exit(0);
-                }
-            }
-        } else {
+        System.out.println();
+//        if(service.start(props)) {
+//            while(service.getServiceStatus() != ServiceStatus.SHUTDOWN) {
+//                Wait.aSec(1);
+//            }
+//        } else {
             System.exit(-1);
-        }
+//        }
     }
+
 }

@@ -3,8 +3,13 @@
 # Resolving Architecture - Bitcoin Client - Java
 Bitcoin Client as a Service
 
-* Uses BitcoinJ to work with the Bitcoin network either using the local node if available or using Tor.
-* If Tor is blocked, will publish the event.
+Provides an API as a Service for a local Bitcoin Core node via its RPC API.
+
+Local Bitcoin instance should be configured to use local 1M5 proxy at best, local Tor proxy at least for inter-Bitcoin-node communications.
+
+## Setup
+Ensure contents of bitcoin.conf provided in project config folder are in the bitcoin.conf file located in the .bitcoin
+directory within the bitcoin installation directory. This enables the JSON RPC.
 
 ## Authors / Developers
 
