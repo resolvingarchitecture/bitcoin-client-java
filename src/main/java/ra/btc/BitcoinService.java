@@ -8,8 +8,8 @@ import ra.common.route.Route;
 import ra.common.service.BaseService;
 import ra.common.service.ServiceStatus;
 import ra.common.service.ServiceStatusObserver;
+import ra.util.Config;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -22,8 +22,9 @@ public class BitcoinService extends BaseService {
 
     private static final Logger LOG = Logger.getLogger(BitcoinService.class.getName());
 
-    public static final String LOCAL_RPC_HOST = "http://127.0.0.1:";
-    public static final Integer LOCAL_RPC_PORT = 8332;
+    public static final String REMOTE_HOST = "ra.btc.remotehost";
+
+    public static final String LOCAL_RPC_HOST = "http://127.0.0.1:8332";
 
     public static final Integer MAIN_NET_PORT = 8333;
     public static final Integer TEST_NET_PORT = 18333;
@@ -44,7 +45,9 @@ public class BitcoinService extends BaseService {
 
     public static URL rpcUrl;
 
-    private boolean localBTCNode = false;
+    private boolean btcIsLocal = true;
+    private String host;
+
     private BitcoinInfo info = new BitcoinInfo();
 
     public BitcoinService() {
@@ -68,7 +71,7 @@ public class BitcoinService extends BaseService {
                         case GetDifficulty.NAME: {
                             if(response.result instanceof Double) {
                                 info.difficulty = (double) response.result;
-                                localBTCNode = true;
+                                btcIsLocal = true;
                                 LOG.info("Difficulty: " + info.difficulty + "; local node verified running.");
                             }
                             break;
@@ -86,8 +89,15 @@ public class BitcoinService extends BaseService {
         LOG.info("Starting....");
         updateStatus(ServiceStatus.STARTING);
         try {
-            rpcUrl = new URL(LOCAL_RPC_HOST+LOCAL_RPC_PORT);
-        } catch (MalformedURLException e) {
+            config = Config.loadAll(p, "ra-btc.config");
+//            if(config.get(REMOTE_HOST)!=null) {
+//                host = config.getProperty(REMOTE_HOST);
+//                btcIsLocal = false;
+//            } else {
+                host = LOCAL_RPC_HOST;
+//            }
+            rpcUrl = new URL(host);
+        } catch (Exception e) {
             LOG.severe(e.getLocalizedMessage());
             return false;
         }
