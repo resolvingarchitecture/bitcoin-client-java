@@ -31,10 +31,11 @@ is tied to Google libraries and copyrighted by Google.
 
 Bitcoin JSON-RPC interface is used for all communications to the local Bitcoin node.
 
-Local Bitcoin node can be a full node or a pruned node. Open payment channels that will be dereferenced upon pruning
-will be lost due to de-referencing. It's recommended to keep the pruning to a minimal by supporting the largest bitcoin
-node size possible. Future versions of this component will provide auto closing of payments channels that would be affected
-by a prune.
+Local Bitcoin node can be a full node or a pruned node but when pruned, functionality will become limited.
+Open payment channels that will be dereferenced upon pruning will be lost due to de-referencing.
+It's recommended to keep the pruning to a minimal by supporting the largest bitcoin node size possible while minimizing how long payment channels are left open.
+Future versions of this component will provide auto closing of payments channels that would be affected by a prune.
 
 ## Implementation
+RPC operations implemented using the following API documentation: https://developer.bitcoin.org/reference/rpc/index.html
 
