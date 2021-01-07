@@ -1,7 +1,5 @@
 package ra.btc.rpc;
 
-import ra.btc.BitcoinService;
-import ra.common.Envelope;
 import ra.common.JSONSerializable;
 import ra.util.JSONParser;
 import ra.util.JSONPretty;
@@ -10,8 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static ra.btc.BitcoinService.OPERATION_RPC_RESPONSE;
 
 public abstract class RPCCommand implements JSONSerializable {
 
@@ -22,24 +18,11 @@ public abstract class RPCCommand implements JSONSerializable {
 
     protected RPCCommand(String method) {
         this.method = method;
-        this.id = method;
-    }
-
-    public Envelope buildEnvelope() {
-        Envelope e = Envelope.documentFactory();
-        e.setURL(BitcoinService.rpcUrl);
-        e.setAction(Envelope.Action.POST);
-        e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
-        e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
-        e.addContent(this.toJSON());
-        e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
-        e.addExternalRoute("ra.http.HTTPService", "SEND");
-        e.ratchet();
-        return e;
     }
 
     @Override
     public Map<String, Object> toMap() {
+        // Request
         Map<String,Object> m = new HashMap<>();
         if(jsonrpc!=null) m.put("jsonrpc", jsonrpc);
         if(id!=null) m.put("id", id);
@@ -49,12 +32,7 @@ public abstract class RPCCommand implements JSONSerializable {
     }
 
     @Override
-    public void fromMap(Map<String, Object> m) {
-        if(m.get("jsonrpc")!=null) jsonrpc = (String)m.get("jsonrpc");
-        if(m.get("id")!=null) id = (String)m.get("id");
-        if(m.get("method")!=null) method = (String)m.get("method");
-        if(m.get("params")!=null) params = (List<Object>)m.get("params");
-    }
+    public void fromMap(Map<String, Object> m) {}
 
     @Override
     public String toJSON() {

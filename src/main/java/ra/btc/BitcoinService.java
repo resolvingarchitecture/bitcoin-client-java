@@ -1,6 +1,10 @@
 package ra.btc;
 
-import ra.btc.rpc.GetDifficulty;
+import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.blockchain.GetBestBlockHash;
+import ra.btc.rpc.blockchain.GetBlock;
+import ra.btc.rpc.blockchain.GetBlockchainInfo;
+import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -11,12 +15,13 @@ import ra.common.service.ServiceStatusObserver;
 import ra.util.Config;
 
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
  * Service for providing access to the Bitcoin network
- *
  */
 public class BitcoinService extends BaseService {
 
@@ -32,22 +37,13 @@ public class BitcoinService extends BaseService {
 
     public static final String AUTHN = "Basic cmE6MTIzNA==";
 
-    // Ops
-    public static final String OPERATION_VERIFY_RPC = "VERIFY_RPC";
-
-    // Control
-
-    // Wallet
-    public static final String OPERATION_CREATE_WALLET = "CREATE_WALLET";
+    // Request
+    public static final String OPERATION_RPC_REQUEST = "BTC_RPC_REQUEST";
 
     // Response
-    public static final String OPERATION_RPC_RESPONSE = "RPC_RESPONSE";
+    public static final String OPERATION_RPC_RESPONSE = "BTC_RPC_RESPONSE";
 
     public static URL rpcUrl;
-
-    private boolean btcIsLocal = true;
-    private String host;
-
     private BitcoinInfo info = new BitcoinInfo();
 
     public BitcoinService() {
@@ -64,23 +60,51 @@ public class BitcoinService extends BaseService {
         switch(operation) {
             case OPERATION_RPC_RESPONSE: {
                 Object obj = e.getContent();
-                if(obj!=null) {
-                    RPCResponse response = new RPCResponse();
-                    response.fromJSON(new String((byte[])obj));
-                    switch (response.id) {
-                        case GetDifficulty.NAME: {
-                            if(response.result instanceof Double) {
-                                info.difficulty = (double) response.result;
-                                btcIsLocal = true;
-                                LOG.info("Difficulty: " + info.difficulty + "; local node verified running.");
-                            }
-                            break;
-                        }
-                    }
+                if(obj==null) {
+                    LOG.warning("No content in response.");
+                    break;
+                }
+                RPCResponse response = new RPCResponse();
+                response.fromJSON(new String((byte[])obj));
+                Map<String, Object> result = (Map<String, Object>)response.result;
+                RPCCommand cmd = (RPCCommand)e.getValue("cmd");
+                cmd.fromMap(result);
+                e.addContent(null);
+                if(e.getDynamicRoutingSlip().peekAtNextRoute()==null) {
+                    // Request originated from this Service so update BitcoinInfo with result
+                    updateInfo(cmd);
                 }
                 break;
             }
+            case OPERATION_RPC_REQUEST: {
+                send(addRoutes(e));
+                break;
+            }
             default: deadLetter(e); // Operation not supported
+        }
+    }
+
+    private Envelope addRoutes(Envelope e) {
+        RPCCommand cmd = (RPCCommand) e.getValue("cmd");
+        cmd.id = e.getId();
+        e.setURL(BitcoinService.rpcUrl);
+        e.setAction(Envelope.Action.POST);
+        e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
+        e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
+        e.addContent(cmd.toJSON());
+        e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
+        e.addExternalRoute("ra.http.HTTPService", "SEND");
+        e.ratchet();
+        return e;
+    }
+
+    private void updateInfo(RPCCommand cmd) {
+        switch(cmd.method) {
+            case GetDifficulty.NAME: {
+                GetDifficulty gd = (GetDifficulty) cmd;
+                info.difficulty = gd.difficulty;
+                info.btcIsLocal = true;
+            }
         }
     }
 
@@ -92,17 +116,18 @@ public class BitcoinService extends BaseService {
             config = Config.loadAll(p, "ra-btc.config");
 //            if(config.get(REMOTE_HOST)!=null) {
 //                host = config.getProperty(REMOTE_HOST);
-//                btcIsLocal = false;
 //            } else {
-                host = LOCAL_RPC_HOST;
+                info.host = LOCAL_RPC_HOST;
 //            }
-            rpcUrl = new URL(host);
+            rpcUrl = new URL(info.host);
         } catch (Exception e) {
             LOG.severe(e.getLocalizedMessage());
             return false;
         }
         // Send to verify a local node is running
-        send(new GetDifficulty().buildEnvelope());
+        Envelope e = Envelope.documentFactory();
+        e.addNVP("cmd", new GetDifficulty());
+        send(addRoutes(e));
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
