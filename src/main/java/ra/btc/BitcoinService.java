@@ -5,6 +5,7 @@ import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
 import ra.btc.rpc.control.Uptime;
+import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -38,15 +39,12 @@ public class BitcoinService extends BaseService {
 
     public static final String AUTHN = "Basic cmE6MTIzNA==";
 
-    // Request
     public static final String OPERATION_RPC_REQUEST = "BTC_RPC_REQUEST";
-
-    // Response
     public static final String OPERATION_RPC_RESPONSE = "BTC_RPC_RESPONSE";
 
     public static URL rpcUrl;
-    private BlockchainInfo info = new BlockchainInfo();
-    private Map<String,RPCCommand> commands = new HashMap<>();
+    private final BlockchainInfo info = new BlockchainInfo();
+    private final Map<String,RPCCommand> commands = new HashMap<>();
 
     public BitcoinService() {
     }
@@ -130,6 +128,9 @@ public class BitcoinService extends BaseService {
             case Uptime.NAME: {
                 info.uptimeSec = (Integer)response.result;
                 break;
+            }
+            case GetNetworkHashPS.NAME: {
+                info.networkHashPS = (Integer)response.result;
             }
         }
     }
