@@ -4,6 +4,7 @@ import ra.btc.rpc.RPCCommand;
 import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
+import ra.btc.rpc.control.Uptime;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -15,6 +16,7 @@ import ra.util.Config;
 import ra.util.Wait;
 
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -44,6 +46,7 @@ public class BitcoinService extends BaseService {
 
     public static URL rpcUrl;
     private BlockchainInfo info = new BlockchainInfo();
+    private Map<String,RPCCommand> commands = new HashMap<>();
 
     public BitcoinService() {
     }
@@ -64,15 +67,14 @@ public class BitcoinService extends BaseService {
                     break;
                 }
                 RPCResponse response = new RPCResponse();
-                response.fromJSON(new String((byte[])obj));
-                Map<String, Object> result = (Map<String, Object>)response.result;
-                RPCCommand cmd = (RPCCommand)e.getValue("cmd");
-                cmd.fromMap(result);
-                e.addContent(null);
+                String result = new String((byte[])obj);
+                LOG.info("Result: "+result);
+                response.fromJSON(result);
+                RPCCommand cmd = commands.get(response.id);
                 if(e.getDynamicRoutingSlip().peekAtNextRoute()==null) {
-                    // Request originated from this Service so update BitcoinInfo with result
-                    updateInfo(cmd);
+                    updateInfo(cmd, response);
                 }
+                commands.remove(response.id);
                 break;
             }
             case OPERATION_RPC_REQUEST: {
@@ -86,6 +88,7 @@ public class BitcoinService extends BaseService {
     private Envelope addRoutes(Envelope e) {
         RPCCommand cmd = (RPCCommand) e.getValue("cmd");
         cmd.id = e.getId();
+        commands.put(cmd.id, cmd);
         e.setURL(BitcoinService.rpcUrl);
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
@@ -97,19 +100,35 @@ public class BitcoinService extends BaseService {
         return e;
     }
 
-    private void updateInfo(RPCCommand cmd) {
+    private void updateInfo(RPCCommand cmd, RPCResponse response) {
         switch(cmd.method) {
             case GetBlockchainInfo.NAME: {
                 GetBlockchainInfo gbi = (GetBlockchainInfo) cmd;
-                gbi.info.btcIsLocal = info.btcIsLocal;
-                gbi.info.host = info.host;
-                info = gbi.info;
+                gbi.fromMap((Map<String, Object>)response.result);
+                info.automaticPruning = gbi.info.automaticPruning;
+                info.bip9Softforks = gbi.info.bip9Softforks;
+                info.bestblockhash = gbi.info.bestblockhash;
+                info.blocks = gbi.info.blocks;
+                info.chain = gbi.info.chain;
+                info.chainwork = gbi.info.chainwork;
+                info.difficulty = gbi.info.difficulty;
+                info.headers = gbi.info.headers;
+                info.mediantime = gbi.info.mediantime;
+                info.pruned = gbi.info.pruned;
+                info.pruneheight = gbi.info.pruneheight;
+                info.pruneTargetSize = gbi.info.pruneTargetSize;
+                info.sizeOnDisk = gbi.info.sizeOnDisk;
+                info.softforks = gbi.info.softforks;
+                info.verificationprogress = gbi.info.verificationprogress;
+                info.warnings = gbi.info.warnings;
                 break;
             }
             case GetDifficulty.NAME: {
-                GetDifficulty gd = (GetDifficulty) cmd;
-                info.difficulty = gd.difficulty;
-                info.btcIsLocal = true;
+                info.difficulty = (Double)response.result;
+                break;
+            }
+            case Uptime.NAME: {
+                info.uptimeSec = (Integer)response.result;
                 break;
             }
         }
@@ -121,20 +140,18 @@ public class BitcoinService extends BaseService {
         updateStatus(ServiceStatus.STARTING);
         try {
             config = Config.loadAll(p, "ra-btc.config");
-//            if(config.get(REMOTE_HOST)!=null) {
-//                host = config.getProperty(REMOTE_HOST);
-//            } else {
-                info.host = LOCAL_RPC_HOST;
-//            }
             rpcUrl = new URL(info.host);
         } catch (Exception e) {
             LOG.severe(e.getLocalizedMessage());
             return false;
         }
-        // Send to verify a local node is running
+        // Send to establish initial info
         Envelope e = Envelope.documentFactory();
         e.addNVP("cmd", new GetBlockchainInfo());
         send(addRoutes(e));
+        Envelope e2 = Envelope.documentFactory();
+        e2.addNVP("cmd", new Uptime());
+        send(addRoutes(e2));
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");

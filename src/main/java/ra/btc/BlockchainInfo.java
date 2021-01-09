@@ -1,11 +1,15 @@
 package ra.btc;
 
-import java.util.List;
+import ra.util.JSONParser;
+import ra.util.JSONPretty;
+
 import java.util.Map;
 
+import static ra.btc.BitcoinService.LOCAL_RPC_HOST;
+
 public class BlockchainInfo {
-    public boolean btcIsLocal = false;
-    public String host;
+    public boolean btcIsLocal = true;
+    public String host = LOCAL_RPC_HOST;
     public String chain;
     public Integer blocks;
     public Integer headers;
@@ -22,5 +26,6 @@ public class BlockchainInfo {
     public Long pruneTargetSize;
     public Map<String,Object> softforks;
     public Map<String,Object> bip9Softforks;
+    public Integer uptimeSec;
     public String warnings;
 }
