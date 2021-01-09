@@ -19,9 +19,7 @@ import ra.util.Config;
 import ra.util.Wait;
 
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -46,6 +44,8 @@ public class BitcoinService extends BaseService {
 
     public static URL rpcUrl;
     private final BlockchainInfo info = new BlockchainInfo();
+    private final List<BitcoinPeer> peers = new ArrayList<>();
+
     private final Map<String, RPCRequest> commands = new HashMap<>();
 
     public BitcoinService() {
@@ -136,11 +136,21 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case GetPeerInfo.NAME: {
-
+                GetPeerInfo gpi = (GetPeerInfo) cmd;
+                List<Map<String,Object>> peersInfo = (List<Map<String,Object>>)response.result;
+                BitcoinPeer bp;
+                peers.clear();
+                for(Map<String,Object> pm : peersInfo) {
+                    // Map peer info to BitcoinPeer
+                    bp = new BitcoinPeer();
+                    bp.fromMap(pm);
+                    peers.add(bp);
+                }
                 break;
             }
             case GetNetworkInfo.NAME: {
-
+                GetNetworkInfo gni = (GetNetworkInfo) cmd;
+                gni.fromMap((Map<String, Object>)response.result);
                 break;
             }
         }
