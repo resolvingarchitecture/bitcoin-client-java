@@ -13,7 +13,7 @@ public class GetBlock extends RPCCommand {
 
     // Request
     public String blockhash;
-    public Verbosity verbosity; // 0 = hex, 1 = json, 2 = json with tx data
+    public Verbosity verbosity;
 
     // Response
     public int confirmations;
@@ -50,7 +50,7 @@ public class GetBlock extends RPCCommand {
     public Map<String, Object> toMap() {
         // Request
         params.add(blockhash);
-        params.add(verbosity.ordinal());
+        params.add(verbosity.ordinal()); // 0 = hex, 1 = json, 2 = json with tx data
         return super.toMap();
     }
 

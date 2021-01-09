@@ -1,11 +1,10 @@
 package ra.btc;
 
 import ra.btc.rpc.RPCCommand;
-import ra.btc.rpc.blockchain.GetBestBlockHash;
-import ra.btc.rpc.blockchain.GetBlock;
 import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
+import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
 import ra.common.route.Route;
@@ -13,9 +12,9 @@ import ra.common.service.BaseService;
 import ra.common.service.ServiceStatus;
 import ra.common.service.ServiceStatusObserver;
 import ra.util.Config;
+import ra.util.Wait;
 
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -44,7 +43,7 @@ public class BitcoinService extends BaseService {
     public static final String OPERATION_RPC_RESPONSE = "BTC_RPC_RESPONSE";
 
     public static URL rpcUrl;
-    private BitcoinInfo info = new BitcoinInfo();
+    private BlockchainInfo info = new BlockchainInfo();
 
     public BitcoinService() {
     }
@@ -100,6 +99,10 @@ public class BitcoinService extends BaseService {
 
     private void updateInfo(RPCCommand cmd) {
         switch(cmd.method) {
+            case GetBlockchainInfo.NAME: {
+                GetBlockchainInfo gbi = (GetBlockchainInfo) cmd;
+                info = gbi.info;
+            }
             case GetDifficulty.NAME: {
                 GetDifficulty gd = (GetDifficulty) cmd;
                 info.difficulty = gd.difficulty;
@@ -126,7 +129,7 @@ public class BitcoinService extends BaseService {
         }
         // Send to verify a local node is running
         Envelope e = Envelope.documentFactory();
-        e.addNVP("cmd", new GetDifficulty());
+        e.addNVP("cmd", new GetBlockchainInfo());
         send(addRoutes(e));
 
         updateStatus(ServiceStatus.RUNNING);
@@ -158,19 +161,34 @@ public class BitcoinService extends BaseService {
 
     public static void main(String[] args) {
         BitcoinService service = new BitcoinService();
+        service.setProducer(new MessageProducer() {
+            @Override
+            public boolean send(Envelope envelope) {
+                return true;
+            }
+
+            @Override
+            public boolean send(Envelope envelope, Client client) {
+                return true;
+            }
+
+            @Override
+            public boolean deadLetter(Envelope envelope) {
+                return true;
+            }
+        });
         Properties props = new Properties();
         for(String arg : args) {
             String[] nvp = arg.split("=");
             props.put(nvp[0],nvp[1]);
         }
-        System.out.println();
-//        if(service.start(props)) {
-//            while(service.getServiceStatus() != ServiceStatus.SHUTDOWN) {
-//                Wait.aSec(1);
-//            }
-//        } else {
+        if(service.start(props)) {
+            while(service.getServiceStatus() != ServiceStatus.SHUTDOWN) {
+                Wait.aSec(1);
+            }
+        } else {
             System.exit(-1);
-//        }
+        }
     }
 
 }
