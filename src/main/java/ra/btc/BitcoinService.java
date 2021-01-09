@@ -8,6 +8,7 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
+import ra.btc.rpc.wallet.GetWalletInfo;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -153,6 +154,11 @@ public class BitcoinService extends BaseService {
                 gni.fromMap((Map<String, Object>)response.result);
                 break;
             }
+            case GetWalletInfo.NAME: {
+                GetWalletInfo gwi = (GetWalletInfo) cmd;
+                gwi.fromMap((Map<String, Object>)response.result);
+                break;
+            }
         }
     }
 
@@ -183,6 +189,9 @@ public class BitcoinService extends BaseService {
         Envelope e5 = Envelope.documentFactory();
         e5.addNVP("cmd", new GetNetworkInfo());
         send(addRoutes(e5));
+        Envelope e6 = Envelope.documentFactory();
+        e6.addNVP("cmd", new GetWalletInfo());
+        send(addRoutes(e6));
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
