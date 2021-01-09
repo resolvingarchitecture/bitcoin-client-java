@@ -9,7 +9,7 @@ public class GetDifficulty extends RPCCommand {
     public static final String NAME = "getdifficulty";
 
     // Response
-    public double difficulty;
+    public Double difficulty;
 
     public GetDifficulty() {
         super(NAME);
@@ -17,6 +17,6 @@ public class GetDifficulty extends RPCCommand {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        difficulty = (Double)m.get("difficulty");
+        difficulty = (Double) m.get("difficulty");
     }
 }

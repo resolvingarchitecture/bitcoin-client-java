@@ -101,12 +101,16 @@ public class BitcoinService extends BaseService {
         switch(cmd.method) {
             case GetBlockchainInfo.NAME: {
                 GetBlockchainInfo gbi = (GetBlockchainInfo) cmd;
+                gbi.info.btcIsLocal = info.btcIsLocal;
+                gbi.info.host = info.host;
                 info = gbi.info;
+                break;
             }
             case GetDifficulty.NAME: {
                 GetDifficulty gd = (GetDifficulty) cmd;
                 info.difficulty = gd.difficulty;
                 info.btcIsLocal = true;
+                break;
             }
         }
     }
