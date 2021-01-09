@@ -1,11 +1,13 @@
 package ra.btc;
 
-import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.RPCRequest;
 import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
 import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
+import ra.btc.rpc.network.GetNetworkInfo;
+import ra.btc.rpc.network.GetPeerInfo;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -44,7 +46,7 @@ public class BitcoinService extends BaseService {
 
     public static URL rpcUrl;
     private final BlockchainInfo info = new BlockchainInfo();
-    private final Map<String,RPCCommand> commands = new HashMap<>();
+    private final Map<String, RPCRequest> commands = new HashMap<>();
 
     public BitcoinService() {
     }
@@ -68,7 +70,7 @@ public class BitcoinService extends BaseService {
                 String result = new String((byte[])obj);
                 LOG.info("Result: "+result);
                 response.fromJSON(result);
-                RPCCommand cmd = commands.get(response.id);
+                RPCRequest cmd = commands.get(response.id);
                 if(e.getDynamicRoutingSlip().peekAtNextRoute()==null) {
                     updateInfo(cmd, response);
                 }
@@ -84,7 +86,7 @@ public class BitcoinService extends BaseService {
     }
 
     private Envelope addRoutes(Envelope e) {
-        RPCCommand cmd = (RPCCommand) e.getValue("cmd");
+        RPCRequest cmd = (RPCRequest) e.getValue("cmd");
         cmd.id = e.getId();
         commands.put(cmd.id, cmd);
         e.setURL(BitcoinService.rpcUrl);
@@ -98,7 +100,7 @@ public class BitcoinService extends BaseService {
         return e;
     }
 
-    private void updateInfo(RPCCommand cmd, RPCResponse response) {
+    private void updateInfo(RPCRequest cmd, RPCResponse response) {
         switch(cmd.method) {
             case GetBlockchainInfo.NAME: {
                 GetBlockchainInfo gbi = (GetBlockchainInfo) cmd;
@@ -130,7 +132,16 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case GetNetworkHashPS.NAME: {
-                info.networkHashPS = (Integer)response.result;
+                info.networkHashPS = (Double)response.result;
+                break;
+            }
+            case GetPeerInfo.NAME: {
+
+                break;
+            }
+            case GetNetworkInfo.NAME: {
+
+                break;
             }
         }
     }
@@ -153,6 +164,15 @@ public class BitcoinService extends BaseService {
         Envelope e2 = Envelope.documentFactory();
         e2.addNVP("cmd", new Uptime());
         send(addRoutes(e2));
+        Envelope e3 = Envelope.documentFactory();
+        e3.addNVP("cmd", new GetNetworkHashPS());
+        send(addRoutes(e3));
+        Envelope e4 = Envelope.documentFactory();
+        e4.addNVP("cmd", new GetPeerInfo());
+        send(addRoutes(e4));
+        Envelope e5 = Envelope.documentFactory();
+        e5.addNVP("cmd", new GetNetworkInfo());
+        send(addRoutes(e5));
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");

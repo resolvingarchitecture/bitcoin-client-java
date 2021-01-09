@@ -1,12 +1,11 @@
 package ra.btc.rpc.blockchain;
 
 import ra.btc.BlockchainInfo;
-import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.RPCRequest;
 
-import java.util.List;
 import java.util.Map;
 
-public class GetBlockchainInfo extends RPCCommand {
+public class GetBlockchainInfo extends RPCRequest {
 
     public static final String NAME = "getblockchaininfo";
 

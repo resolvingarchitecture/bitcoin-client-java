@@ -1,8 +1,8 @@
 package ra.btc.rpc.control;
 
-import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.RPCRequest;
 
-public class Uptime extends RPCCommand {
+public class Uptime extends RPCRequest {
 
     public static final String NAME = "uptime";
 

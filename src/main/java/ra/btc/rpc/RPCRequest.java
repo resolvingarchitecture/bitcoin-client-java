@@ -9,14 +9,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class RPCCommand implements JSONSerializable {
+public abstract class RPCRequest implements JSONSerializable {
 
     public String jsonrpc = "1.0";
     public String id;
     public String method;
     public List<Object> params = new ArrayList<>();
 
-    protected RPCCommand(String method) {
+    protected RPCRequest(String method) {
         this.method = method;
     }
 

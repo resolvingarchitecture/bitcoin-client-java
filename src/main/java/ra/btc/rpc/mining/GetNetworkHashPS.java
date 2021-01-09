@@ -1,8 +1,8 @@
 package ra.btc.rpc.mining;
 
-import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.RPCRequest;
 
-public class GetNetworkHashPS extends RPCCommand {
+public class GetNetworkHashPS extends RPCRequest {
 
     public static final String NAME = "getnetworkhashps";
 

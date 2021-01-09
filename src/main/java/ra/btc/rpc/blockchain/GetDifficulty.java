@@ -1,10 +1,10 @@
 package ra.btc.rpc.blockchain;
 
-import ra.btc.rpc.RPCCommand;
+import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;
 
-public class GetDifficulty extends RPCCommand {
+public class GetDifficulty extends RPCRequest {
 
     public static final String NAME = "getdifficulty";
 

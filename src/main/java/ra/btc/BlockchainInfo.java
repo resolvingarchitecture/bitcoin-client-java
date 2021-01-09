@@ -17,7 +17,7 @@ public class BlockchainInfo {
     public String host = LOCAL_RPC_HOST;
     public Boolean initialblockdownload;
     public Integer mediantime;
-    public Integer networkHashPS;
+    public Double networkHashPS;
     public Boolean pruned;
     public Integer pruneheight;
     public Long pruneTargetSize;
