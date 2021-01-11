@@ -8,6 +8,7 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
+import ra.btc.rpc.wallet.GetNewAddress;
 import ra.btc.rpc.wallet.GetWalletInfo;
 import ra.btc.rpc.wallet.ListWallets;
 import ra.common.Client;
@@ -198,8 +199,10 @@ public class BitcoinService extends BaseService {
         sendRequest(new GetPeerInfo());
         sendRequest(new GetNetworkInfo());
         sendRequest(new GetWalletInfo());
-        sendRequest(new GetWalletInfo());
-        sendRequest(new ListWallets());
+
+        // Tests
+//        sendRequest(new ListWallets());
+//        sendRequest(new GetNewAddress());
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
