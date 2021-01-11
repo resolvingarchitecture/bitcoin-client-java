@@ -2,6 +2,8 @@ package ra.btc;
 
 public class RPCCommands {
 
+    public static final String CMD = "cmd";
+
     // Blockchain
     public static final String BLOCKCOUNT = "getblockcount";
     public static final String INFO = "getblockchaininfo";

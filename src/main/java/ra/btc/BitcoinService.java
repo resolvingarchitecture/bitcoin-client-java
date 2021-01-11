@@ -9,8 +9,10 @@ import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
 import ra.btc.rpc.wallet.GetWalletInfo;
+import ra.btc.rpc.wallet.ListWallets;
 import ra.common.Client;
 import ra.common.Envelope;
+import ra.common.messaging.EventMessage;
 import ra.common.messaging.MessageProducer;
 import ra.common.route.Route;
 import ra.common.service.BaseService;
@@ -79,26 +81,42 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case OPERATION_RPC_REQUEST: {
-                send(addRoutes(e));
+                forwardRequest(e);
                 break;
             }
             default: deadLetter(e); // Operation not supported
         }
     }
 
-    private Envelope addRoutes(Envelope e) {
-        RPCRequest cmd = (RPCRequest) e.getValue("cmd");
-        cmd.id = e.getId();
-        commands.put(cmd.id, cmd);
+    private boolean forwardRequest(Envelope e) {
+        RPCRequest request = (RPCRequest) e.getValue(RPCCommands.CMD);
+        request.id = e.getId();
+        commands.put(request.id, request);
         e.setURL(BitcoinService.rpcUrl);
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
         e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
-        e.addContent(cmd.toJSON());
+        e.addContent(request.toJSON());
         e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
         e.addExternalRoute("ra.http.HTTPService", "SEND");
         e.ratchet();
-        return e;
+        return send(e);
+    }
+
+    private boolean sendRequest(RPCRequest request) {
+        Envelope e = Envelope.documentFactory();
+        e.addNVP(RPCCommands.CMD, request);
+        request.id = e.getId();
+        commands.put(request.id, request);
+        e.setURL(BitcoinService.rpcUrl);
+        e.setAction(Envelope.Action.POST);
+        e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
+        e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
+        e.addContent(request.toJSON());
+        e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
+        e.addExternalRoute("ra.http.HTTPService", "SEND");
+        e.ratchet();
+        return send(e);
     }
 
     private void updateInfo(RPCRequest cmd, RPCResponse response) {
@@ -174,24 +192,14 @@ public class BitcoinService extends BaseService {
             return false;
         }
         // Send to establish initial info
-        Envelope e = Envelope.documentFactory();
-        e.addNVP("cmd", new GetBlockchainInfo());
-        send(addRoutes(e));
-        Envelope e2 = Envelope.documentFactory();
-        e2.addNVP("cmd", new Uptime());
-        send(addRoutes(e2));
-        Envelope e3 = Envelope.documentFactory();
-        e3.addNVP("cmd", new GetNetworkHashPS());
-        send(addRoutes(e3));
-        Envelope e4 = Envelope.documentFactory();
-        e4.addNVP("cmd", new GetPeerInfo());
-        send(addRoutes(e4));
-        Envelope e5 = Envelope.documentFactory();
-        e5.addNVP("cmd", new GetNetworkInfo());
-        send(addRoutes(e5));
-        Envelope e6 = Envelope.documentFactory();
-        e6.addNVP("cmd", new GetWalletInfo());
-        send(addRoutes(e6));
+        sendRequest(new GetBlockchainInfo());
+        sendRequest(new Uptime());
+        sendRequest(new GetNetworkHashPS());
+        sendRequest(new GetPeerInfo());
+        sendRequest(new GetNetworkInfo());
+        sendRequest(new GetWalletInfo());
+        sendRequest(new GetWalletInfo());
+        sendRequest(new ListWallets());
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
