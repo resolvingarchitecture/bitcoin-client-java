@@ -1,11 +1,12 @@
 package ra.btc.rpc.wallet;
 
 import ra.btc.rpc.RPCRequest;
-import ra.btc.rpc.blockchain.GetBlock;
 
-import java.util.List;
 import java.util.Map;
 
+/**
+ * Safely copies current wallet file to destination, which can be a directory or a path with filename.
+ */
 public class BackupWallet  extends RPCRequest {
 
     public static final String NAME = "backupwallet";
@@ -13,6 +14,10 @@ public class BackupWallet  extends RPCRequest {
     // Request
     public String destination;
 
+    /**
+     *
+     * @param destination Directory or path with a filename
+     */
     public BackupWallet(String destination) {
         super(NAME);
         this.destination = destination;
