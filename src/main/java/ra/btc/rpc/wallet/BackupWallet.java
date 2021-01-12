@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Safely copies current wallet file to destination, which can be a directory or a path with filename.
  */
-public class BackupWallet  extends RPCRequest {
+public class BackupWallet extends RPCRequest {
 
     public static final String NAME = "backupwallet";
 
