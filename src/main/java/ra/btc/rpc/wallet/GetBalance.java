@@ -1,7 +1,6 @@
 package ra.btc.rpc.wallet;
 
 import ra.btc.rpc.RPCRequest;
-import ra.btc.rpc.blockchain.GetBlock;
 
 import java.util.Map;
 
