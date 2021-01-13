@@ -36,6 +36,10 @@ Open payment channels that will be dereferenced upon pruning will be lost due to
 It's recommended to keep the pruning to a minimal by supporting the largest bitcoin node size possible while minimizing how long payment channels are left open.
 Future versions of this component will provide auto closing of payments channels that would be affected by a prune.
 
+## Configuration
+If your bitcoin node is not located in the following directory: /home/[username here]/snap/bitcoin-core/common/.bitcoin/
+then set the bitcoin home directory by passing it in as the parameter: ra.btc.directory
+
 ## Implementation
 RPC operations implemented using the following API documentation: https://developer.bitcoin.org/reference/rpc/index.html
 

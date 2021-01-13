@@ -20,8 +20,10 @@ import ra.common.service.BaseService;
 import ra.common.service.ServiceStatus;
 import ra.common.service.ServiceStatusObserver;
 import ra.util.Config;
+import ra.util.SystemSettings;
 import ra.util.Wait;
 
+import java.io.File;
 import java.net.URL;
 import java.util.*;
 import java.util.logging.Logger;
@@ -46,6 +48,7 @@ public class BitcoinService extends BaseService {
     public static final String OPERATION_RPC_REQUEST = "BTC_RPC_REQUEST";
     public static final String OPERATION_RPC_RESPONSE = "BTC_RPC_RESPONSE";
 
+    private final NodeConfig nodeConfig = new NodeConfig();
     public static URL rpcUrl;
     private final BlockchainInfo info = new BlockchainInfo();
     private final List<BitcoinPeer> peers = new ArrayList<>();
@@ -188,6 +191,14 @@ public class BitcoinService extends BaseService {
         try {
             config = Config.loadAll(p, "ra-btc.config");
             rpcUrl = new URL(info.host);
+            String btcCfgDir;
+            if(config.getProperty("ra.btc.directory")!=null) {
+                btcCfgDir = config.getProperty("ra.btc.directory");
+            } else {
+                btcCfgDir = SystemSettings.getUserHomeDir().getAbsolutePath() + "/snap/bitcoin-core/common/.bitcoin/";
+            }
+            LOG.info(btcCfgDir);
+            LOG.info("NodeConfig loaded: "+nodeConfig.load(btcCfgDir));
         } catch (Exception e) {
             LOG.severe(e.getLocalizedMessage());
             return false;
@@ -202,7 +213,7 @@ public class BitcoinService extends BaseService {
 
         // Tests
 //        sendRequest(new ListWallets());
-//        sendRequest(new GetNewAddress());
+        sendRequest(new GetNewAddress());
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
