@@ -213,7 +213,7 @@ public class BitcoinService extends BaseService {
 
         // Tests
 //        sendRequest(new ListWallets());
-        sendRequest(new GetNewAddress());
+//        sendRequest(new GetNewAddress());
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
