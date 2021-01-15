@@ -41,11 +41,7 @@ public class GetNewAddress extends RPCRequest {
         // Request
         if(label!=null) params.add(label);
         if(addressType!=null) {
-            switch (addressType) {
-                case LEGACY: params.add("legacy");break;
-                case P2SH_SEGWIT: params.add("p2sh-segwit");break;
-                case BECH32: params.add("bech32");break;
-            }
+            params.add(addressType);
         }
         return super.toMap();
     }
