@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class AddMultisigAddress extends RPCRequest {
 
-    public static final String NAME = "backupwallet";
+    public static final String NAME = "addmultisigaddress";
 
     // Request
     public Integer nRequired;
