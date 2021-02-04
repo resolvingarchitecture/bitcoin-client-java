@@ -8,12 +8,9 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
-import ra.btc.rpc.wallet.GetNewAddress;
 import ra.btc.rpc.wallet.GetWalletInfo;
-import ra.btc.rpc.wallet.ListWallets;
 import ra.common.Client;
 import ra.common.Envelope;
-import ra.common.messaging.EventMessage;
 import ra.common.messaging.MessageProducer;
 import ra.common.route.Route;
 import ra.common.service.BaseService;
@@ -23,7 +20,6 @@ import ra.util.Config;
 import ra.util.SystemSettings;
 import ra.util.Wait;
 
-import java.io.File;
 import java.net.URL;
 import java.util.*;
 import java.util.logging.Logger;
@@ -53,7 +49,7 @@ public class BitcoinService extends BaseService {
     private final BlockchainInfo info = new BlockchainInfo();
     private final List<BitcoinPeer> peers = new ArrayList<>();
 
-    private final Map<String, RPCRequest> commands = new HashMap<>();
+    private final Map<String, RPCRequest> requests = new HashMap<>();
 
     public BitcoinService() {
     }
@@ -77,11 +73,11 @@ public class BitcoinService extends BaseService {
                 String result = new String((byte[])obj);
                 LOG.info("Result: "+result);
                 response.fromJSON(result);
-                RPCRequest cmd = commands.get(response.id);
+                RPCRequest request = requests.get(response.id);
                 if(e.getDynamicRoutingSlip().peekAtNextRoute()==null) {
-                    updateInfo(cmd, response);
+                    updateInfo(request, response);
                 }
-                commands.remove(response.id);
+                requests.remove(response.id);
                 break;
             }
             case OPERATION_RPC_REQUEST: {
@@ -95,7 +91,7 @@ public class BitcoinService extends BaseService {
     private boolean forwardRequest(Envelope e) {
         RPCRequest request = (RPCRequest) e.getValue(RPCCommands.CMD);
         request.id = e.getId();
-        commands.put(request.id, request);
+        requests.put(request.id, request);
         e.setURL(BitcoinService.rpcUrl);
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
@@ -111,7 +107,7 @@ public class BitcoinService extends BaseService {
         Envelope e = Envelope.documentFactory();
         e.addNVP(RPCCommands.CMD, request);
         request.id = e.getId();
-        commands.put(request.id, request);
+        requests.put(request.id, request);
         e.setURL(BitcoinService.rpcUrl);
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
@@ -123,10 +119,10 @@ public class BitcoinService extends BaseService {
         return send(e);
     }
 
-    private void updateInfo(RPCRequest cmd, RPCResponse response) {
-        switch(cmd.method) {
+    private void updateInfo(RPCRequest request, RPCResponse response) {
+        switch(request.method) {
             case GetBlockchainInfo.NAME: {
-                GetBlockchainInfo gbi = (GetBlockchainInfo) cmd;
+                GetBlockchainInfo gbi = (GetBlockchainInfo) request;
                 gbi.fromMap((Map<String, Object>)response.result);
                 info.automaticPruning = gbi.info.automaticPruning;
                 info.bip9Softforks = gbi.info.bip9Softforks;
@@ -159,7 +155,7 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case GetPeerInfo.NAME: {
-                GetPeerInfo gpi = (GetPeerInfo) cmd;
+                GetPeerInfo gpi = (GetPeerInfo) request;
                 List<Map<String,Object>> peersInfo = (List<Map<String,Object>>)response.result;
                 BitcoinPeer bp;
                 peers.clear();
@@ -172,12 +168,12 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case GetNetworkInfo.NAME: {
-                GetNetworkInfo gni = (GetNetworkInfo) cmd;
+                GetNetworkInfo gni = (GetNetworkInfo) request;
                 gni.fromMap((Map<String, Object>)response.result);
                 break;
             }
             case GetWalletInfo.NAME: {
-                GetWalletInfo gwi = (GetWalletInfo) cmd;
+                GetWalletInfo gwi = (GetWalletInfo) request;
                 gwi.fromMap((Map<String, Object>)response.result);
                 break;
             }
