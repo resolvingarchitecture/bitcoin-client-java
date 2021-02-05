@@ -1,5 +1,6 @@
 package ra.btc.rpc.blockchain;
 
+import ra.btc.Block;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.List;
@@ -16,23 +17,7 @@ public class GetBlock extends RPCRequest {
     public Verbosity verbosity;
 
     // Response
-    public int confirmations;
-    public long blocksize;
-    public long blocksizeStripped; // excluding witness data
-    public int blockweight;
-    public long blockheight;
-    public int blockversion;
-    public String merkleroot;
-    public List<String> tx;
-    public long time;
-    public long mediantime;
-    public long nonce;
-    public String bits;
-    public Double difficulty;
-    public String chainwork;
-    public long nTx;
-    public String previousblockhash;
-    public String nextblockhash;
+    public Block block;
 
     public GetBlock(String blockHash) {
         super(NAME);
@@ -57,28 +42,29 @@ public class GetBlock extends RPCRequest {
     @Override
     public void fromMap(Map<String, Object> m) {
         // Response
+        block = new Block();
         if(verbosity==Verbosity.HEX) {
 
             return;
         } else {
-            blockhash = (String) m.get("hash");
-            confirmations = (Integer) m.get("confirmations");
-            blocksize = (Long) m.get("size");
-            blocksizeStripped = (Long) m.get("strippedsize");
-            blockweight = (Integer) m.get("weight");
-            blockheight = (Long) m.get("height");
-            blockversion = (Integer) m.get("version");
-            merkleroot = (String) m.get("merkleroot");
-            tx = (List<String>)m.get("tx");
-            time = (Long)m.get("time");
-            mediantime = (Long)m.get("mediantime");
-            nonce = (Long)m.get("nonce");
-            bits = (String)m.get("bits");
-            difficulty = (Double)m.get("difficulty");
-            chainwork = (String)m.get("chainwork");
-            nTx = (Long)m.get("nTx");
-            previousblockhash = (String)m.get("previousblockhash");
-            nextblockhash = (String)m.get("nextblockhash");
+            block.hash = (String) m.get("hash");
+            block.confirmations = (Integer) m.get("confirmations");
+            block.blocksize = (Long) m.get("size");
+            block.blocksizeStripped = (Long) m.get("strippedsize");
+            block.blockweight = (Integer) m.get("weight");
+            block.blockheight = (Long) m.get("height");
+            block.blockversion = (Integer) m.get("version");
+            block.merkleroot = (String) m.get("merkleroot");
+            block.tx = (List<String>)m.get("tx");
+            block.time = (Long)m.get("time");
+            block.mediantime = (Long)m.get("mediantime");
+            block.nonce = (Long)m.get("nonce");
+            block.bits = (String)m.get("bits");
+            block.difficulty = (Double)m.get("difficulty");
+            block.chainwork = (String)m.get("chainwork");
+            block.nTx = (Long)m.get("nTx");
+            block.previousblockhash = (String)m.get("previousblockhash");
+            block.nextblockhash = (String)m.get("nextblockhash");
         }
         if(verbosity==Verbosity.JSONTX) {
             // Pick up raw Tx
