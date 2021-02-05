@@ -1,5 +1,6 @@
 package ra.btc.rpc.blockchain;
 
+import ra.btc.BlockHeader;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;
@@ -13,21 +14,7 @@ public class GetBlockHeader extends RPCRequest {
     public Boolean verbose = true;
 
     // Response
-    public String hash; // the block hash (same as provided)
-    public Integer confirmations; // The number of confirmations, or -1 if the block is not on the main chain
-    public Integer height; // The block height or index
-    public Integer version; // The block version
-    public String versionHex; // The block version formatted in hexadecimal
-    public String merkleroot; // The merkle root
-    public Long time; // The block time in seconds since epoch (Jan 1 1970 GMT)
-    public Long mediantime; // The median block time in seconds since epoch (Jan 1 1970 GMT)
-    public Integer nonce; // The nonce
-    public String bits; // The bits
-    public Double difficulty; // The difficulty
-    public String chainwork; // Expected number of hashes required to produce the current chain (in hex)
-    public Integer nTx; // The number of transactions in the block.
-    public String previousblockhash; // The hash of the previous block
-    public String nextblockhash; // The hash of the next block
+    public BlockHeader blockHeader;
 
     public GetBlockHeader(String blockhash) {
         super(NAME);
@@ -49,20 +36,21 @@ public class GetBlockHeader extends RPCRequest {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        hash = (String)m.get("hash");
-        confirmations = (Integer)m.get("confirmations");
-        height = (Integer)m.get("height");
-        version = (Integer)m.get("version");
-        versionHex = (String)m.get("versionHex");
-        merkleroot = (String)m.get("merkleroot");
-        time = (Long)m.get("time");
-        mediantime = (Long)m.get("mediantime");
-        nonce = (Integer)m.get("nonce");
-        bits = (String)m.get("bits");
-        difficulty = (Double)m.get("difficulty");
-        chainwork = (String)m.get("chainwork");
-        nTx = (Integer)m.get("nTx");
-        previousblockhash = (String)m.get("previousblockhash");
-        nextblockhash = (String)m.get("nextblockhash");
+        blockHeader = new BlockHeader();
+        blockHeader.hash = (String)m.get("hash");
+        blockHeader.confirmations = (Integer)m.get("confirmations");
+        blockHeader.height = (Integer)m.get("height");
+        blockHeader.version = (Integer)m.get("version");
+        blockHeader.versionHex = (String)m.get("versionHex");
+        blockHeader.merkleroot = (String)m.get("merkleroot");
+        blockHeader.time = (Long)m.get("time");
+        blockHeader.mediantime = (Long)m.get("mediantime");
+        blockHeader.nonce = (Integer)m.get("nonce");
+        blockHeader.bits = (String)m.get("bits");
+        blockHeader.difficulty = (Double)m.get("difficulty");
+        blockHeader.chainwork = (String)m.get("chainwork");
+        blockHeader.nTx = (Integer)m.get("nTx");
+        blockHeader.previousblockhash = (String)m.get("previousblockhash");
+        blockHeader.nextblockhash = (String)m.get("nextblockhash");
     }
 }
