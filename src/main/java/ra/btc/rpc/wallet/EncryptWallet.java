@@ -9,7 +9,7 @@ public class EncryptWallet extends RPCRequest {
     public static final String NAME = "encryptwallet";
 
     // Request
-    private String passphrase;
+    public String passphrase;
 
     public EncryptWallet(String passphrase) {
         super(NAME);
