@@ -6,6 +6,13 @@ import ra.btc.rpc.RPCRequest;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Compute per block statistics for a given window. All amounts are in satoshis.
+ *
+ * It won’t work for some heights with pruning.
+ *
+ * It won’t work without -txindex for utxo_size_inc, *fee or *feerate stats.
+ */
 public class GetBlockStats extends RPCRequest {
 
     public static final String NAME = "getblockstats";
