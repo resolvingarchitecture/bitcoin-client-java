@@ -8,21 +8,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * If txid is in the mempool, returns all in-mempool ancestors.
+ * If txid is in the mempool, returns all in-mempool descendants.
  */
-public class GetMempoolAncestors extends RPCRequest {
-    public static final String NAME = "getmempoolancestors";
+public class GetMempoolDescendants extends RPCRequest {
+    public static final String NAME = "getmempooldescendants";
 
     public String txId;
     public Boolean verbose = false;
     public List<MempoolAncestor> mempoolAncestors = new ArrayList<>();
 
-    public GetMempoolAncestors(String txId) {
+    public GetMempoolDescendants(String txId) {
         super(NAME);
         this.txId = txId;
     }
 
-    public GetMempoolAncestors(String txId, Boolean verbose) {
+    public GetMempoolDescendants(String txId, Boolean verbose) {
         super(NAME);
         this.txId = txId;
         this.verbose = verbose;
