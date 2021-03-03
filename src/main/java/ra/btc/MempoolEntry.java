@@ -2,7 +2,7 @@ package ra.btc;
 
 import java.util.List;
 
-public class MempoolAncestor {
+public class MempoolEntry {
     public String transactionId;
     public Integer size;
     public Integer modifiedFee;

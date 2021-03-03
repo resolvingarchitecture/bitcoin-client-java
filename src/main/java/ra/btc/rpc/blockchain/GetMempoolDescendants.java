@@ -1,6 +1,6 @@
 package ra.btc.rpc.blockchain;
 
-import ra.btc.MempoolAncestor;
+import ra.btc.MempoolEntry;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ public class GetMempoolDescendants extends RPCRequest {
 
     public String txId;
     public Boolean verbose = false;
-    public List<MempoolAncestor> mempoolAncestors = new ArrayList<>();
+    public List<MempoolEntry> mempoolEntries = new ArrayList<>();
 
     public GetMempoolDescendants(String txId) {
         super(NAME);
@@ -38,11 +38,11 @@ public class GetMempoolDescendants extends RPCRequest {
     @Override
     public void fromMap(Map<String, Object> m) {
         if(m.size() > 0) {
-            MempoolAncestor mAnc;
+            MempoolEntry mAnc;
             if (verbose) {
                 List<Map<String,Object>> txs = (List<Map<String,Object>>) m.get(0);
                 for(Map<String,Object> tx : txs) {
-                    mAnc = new MempoolAncestor();
+                    mAnc = new MempoolEntry();
                     mAnc.transactionId = (String)m.get("transactionId"); // TODO: Verify this is available (doesn't show in API)
                     mAnc.size = (Integer)m.get("size");
                     mAnc.modifiedFee = (Integer)m.get("modifiedfee");
@@ -63,14 +63,14 @@ public class GetMempoolDescendants extends RPCRequest {
                     mAnc.depends = (List<String>)m.get("depends");
                     mAnc.spentBy = (List<String>)m.get("spendby");
                     mAnc.bip125Replaceable = (Boolean)m.get("bip125-replaceable");
-                    mempoolAncestors.add(mAnc);
+                    mempoolEntries.add(mAnc);
                 }
             } else {
                 List<String> txIds = (List<String>) m.get(0);
                 for (String txId : txIds) {
-                    mAnc = new MempoolAncestor();
+                    mAnc = new MempoolEntry();
                     mAnc.transactionId = txId;
-                    mempoolAncestors.add(mAnc);
+                    mempoolEntries.add(mAnc);
                 }
             }
         }
