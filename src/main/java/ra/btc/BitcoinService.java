@@ -89,7 +89,7 @@ public class BitcoinService extends BaseService {
     }
 
     private boolean forwardRequest(Envelope e) {
-        RPCRequest request = (RPCRequest) e.getValue(RPCCommands.CMD);
+        RPCRequest request = (RPCRequest) e.getValue(RPCCommand.NAME);
         request.id = e.getId();
         requests.put(request.id, request);
         e.setURL(BitcoinService.rpcUrl);
@@ -105,7 +105,7 @@ public class BitcoinService extends BaseService {
 
     private boolean sendRequest(RPCRequest request) {
         Envelope e = Envelope.documentFactory();
-        e.addNVP(RPCCommands.CMD, request);
+        e.addNVP(RPCCommand.NAME, request);
         request.id = e.getId();
         requests.put(request.id, request);
         e.setURL(BitcoinService.rpcUrl);
