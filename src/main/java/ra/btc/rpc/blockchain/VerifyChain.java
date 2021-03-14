@@ -1,12 +1,6 @@
 package ra.btc.rpc.blockchain;
 
-import ra.btc.ScanObject;
-import ra.btc.ScriptPublicKey;
-import ra.btc.UTXO;
 import ra.btc.rpc.RPCRequest;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class VerifyChain extends RPCRequest {
