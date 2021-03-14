@@ -3,7 +3,6 @@ package ra.btc.rpc.blockchain;
 import ra.btc.ScanObject;
 import ra.btc.ScriptPublicKey;
 import ra.btc.UTXO;
-import ra.btc.UTXOSet;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.ArrayList;
