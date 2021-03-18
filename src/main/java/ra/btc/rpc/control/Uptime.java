@@ -8,11 +8,10 @@ import java.util.Map;
  * Returns the total uptime of the server.
  */
 public class Uptime extends RPCRequest {
-
     public static final String NAME = "uptime";
 
     // Response
-    public Long uptimeSec; // The number of seconds that the server has been running
+    public Integer uptimeSeconds; // The number of seconds that the server has been running
 
     public Uptime() {
         super(NAME);
@@ -21,7 +20,7 @@ public class Uptime extends RPCRequest {
     @Override
     public void fromMap(Map<String, Object> m) {
         if(m.size() > 0) {
-            uptimeSec = (Long)m.get("ttt");
+            uptimeSeconds = (Integer)m.get("ttt");
         }
     }
 }
