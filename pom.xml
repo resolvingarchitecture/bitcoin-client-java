@@ -5,7 +5,7 @@
 
     <groupId>resolvingarchitecture</groupId>
 	<artifactId>btc</artifactId>
-	<version>0.2.39</version>
+	<version>0.2.40</version>
 
 	<packaging>jar</packaging>
 
