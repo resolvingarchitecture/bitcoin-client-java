@@ -53,7 +53,7 @@ public class GetTxOut extends RPCRequest {
             utxo.scriptPubKey.asm = (String)sm.get("asm");
             utxo.scriptPubKey.hex = (String)sm.get("hex");
             utxo.scriptPubKey.reqSigs = (Integer)sm.get("reqSigs");
-            utxo.scriptPubKey.type = (String)sm.get("type");
+            utxo.scriptPubKey.type = ScriptPublicKey.Type.valueOf((String)sm.get("type"));
             utxo.scriptPubKey.addresses = (List<String>)sm.get("addresses");
             utxo.coinbase = (Boolean)m.get("coinbase");
         }

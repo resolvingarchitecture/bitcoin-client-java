@@ -8,6 +8,7 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
+import ra.btc.rpc.wallet.GetBalance;
 import ra.btc.rpc.wallet.GetWalletInfo;
 import ra.common.Client;
 import ra.common.Envelope;
@@ -33,7 +34,7 @@ public class BitcoinService extends BaseService {
 
     public static final String REMOTE_HOST = "ra.btc.remotehost";
 
-    public static final String LOCAL_RPC_HOST = "http://127.0.0.1:8332";
+    public static final String LOCAL_RPC_HOST = "http://127.0.0.1:";
 
     public static final Integer MAIN_NET_PORT = 8333;
     public static final Integer TEST_NET_PORT = 18333;
@@ -121,6 +122,7 @@ public class BitcoinService extends BaseService {
 
     private void updateInfo(RPCRequest request, RPCResponse response) {
         switch(request.method) {
+            // TODO: Refactor out switch by passing fully qualified class name and using reflection to create instance then map
             case GetBlockchainInfo.NAME: {
                 GetBlockchainInfo gbi = (GetBlockchainInfo) request;
                 gbi.fromMap((Map<String, Object>)response.result);
@@ -177,6 +179,12 @@ public class BitcoinService extends BaseService {
                 gwi.fromMap((Map<String, Object>)response.result);
                 break;
             }
+            case GetBalance.NAME: {
+                GetBalance gb = (GetBalance) request;
+                gb.fromMap((Map<String, Object>)response.result);
+                LOG.info("Balance: "+gb.amount);
+                break;
+            }
         }
     }
 
@@ -186,7 +194,14 @@ public class BitcoinService extends BaseService {
         updateStatus(ServiceStatus.STARTING);
         try {
             config = Config.loadAll(p, "ra-btc.config");
-            rpcUrl = new URL(info.host);
+            String env = config.getProperty("1m5.env");
+            if("test".equals(env))
+                rpcUrl = new URL(info.host+TEST_NET_PORT);
+            else if("prod".equals(env)) {
+                rpcUrl = new URL(info.host+MAIN_NET_PORT);
+            } else {
+                rpcUrl = new URL(info.host+REG_TEST_PORT);
+            }
             String btcCfgDir;
             if(config.getProperty("ra.btc.directory")!=null) {
                 btcCfgDir = config.getProperty("ra.btc.directory");
@@ -200,12 +215,13 @@ public class BitcoinService extends BaseService {
             return false;
         }
         // Send to establish initial info
-        sendRequest(new GetBlockchainInfo());
-        sendRequest(new Uptime());
-        sendRequest(new GetNetworkHashPS());
-        sendRequest(new GetPeerInfo());
-        sendRequest(new GetNetworkInfo());
-        sendRequest(new GetWalletInfo());
+//        sendRequest(new GetBlockchainInfo());
+//        sendRequest(new Uptime());
+//        sendRequest(new GetNetworkHashPS());
+//        sendRequest(new GetPeerInfo());
+//        sendRequest(new GetNetworkInfo());
+//        sendRequest(new GetWalletInfo());
+        sendRequest(new GetBalance());
 
         // Tests
 //        sendRequest(new ListWallets());

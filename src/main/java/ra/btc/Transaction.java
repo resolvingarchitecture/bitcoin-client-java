@@ -8,6 +8,7 @@ public class Transaction {
     public Integer size;
     public Integer vsize;
     public Integer weight;
+    public Integer version;
     public Integer locktime;
     public List<TXI> vIn;
     public List<UTXO> vOut;
