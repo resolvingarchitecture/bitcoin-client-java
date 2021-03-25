@@ -1,14 +1,21 @@
 package ra.btc.rpc.tx;
 
-import ra.btc.Memory;
 import ra.btc.TXI;
 import ra.btc.UTXO;
 import ra.btc.rpc.RPCRequest;
-import ra.btc.rpc.control.GetMemoryInfo;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Create a transaction spending the given inputs and creating new outputs.
+ *
+ * Outputs can be addresses or data.
+ *
+ * Returns hex-encoded raw transaction.
+ *
+ * Note that the transaction’s inputs are not signed, and it is not stored in the wallet or transmitted to the network.
+ */
 public class CreateRawTransaction extends RPCRequest {
     public static final String NAME = "createrawtransaction";
 
