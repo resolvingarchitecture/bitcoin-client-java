@@ -1,6 +1,7 @@
 package ra.btc;
 
 import ra.btc.rpc.RPCRequest;
+import ra.btc.rpc.blockchain.GetBlockCount;
 import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
@@ -36,9 +37,9 @@ public class BitcoinService extends BaseService {
 
     public static final String LOCAL_RPC_HOST = "http://127.0.0.1:";
 
-    public static final Integer MAIN_NET_PORT = 8333;
-    public static final Integer TEST_NET_PORT = 18333;
-    public static final Integer REG_TEST_PORT = 18444;
+    public static final Integer MAIN_NET_PORT = 8332;
+    public static final Integer TEST_NET_PORT = 18332;
+    public static final Integer REG_TEST_PORT = 18443;
 
     public static final String AUTHN = "Basic cmE6MTIzNA==";
 
@@ -221,7 +222,7 @@ public class BitcoinService extends BaseService {
 //        sendRequest(new GetPeerInfo());
 //        sendRequest(new GetNetworkInfo());
 //        sendRequest(new GetWalletInfo());
-        sendRequest(new GetBalance());
+        sendRequest(new GetBlockCount());
 
         // Tests
 //        sendRequest(new ListWallets());
