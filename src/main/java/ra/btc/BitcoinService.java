@@ -9,8 +9,11 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
+import ra.btc.rpc.util.EstimateSmartFee;
+import ra.btc.rpc.wallet.CreateWallet;
 import ra.btc.rpc.wallet.GetBalance;
 import ra.btc.rpc.wallet.GetWalletInfo;
+import ra.btc.rpc.wallet.ListWallets;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -73,7 +76,7 @@ public class BitcoinService extends BaseService {
                 }
                 RPCResponse response = new RPCResponse();
                 String result = new String((byte[])obj);
-                LOG.info("Result: "+result);
+                LOG.info("BTC RPC Result: "+result);
                 response.fromJSON(result);
                 RPCRequest request = requests.get(response.id);
                 if(e.getDynamicRoutingSlip().peekAtNextRoute()==null) {
@@ -222,9 +225,12 @@ public class BitcoinService extends BaseService {
 //        sendRequest(new GetPeerInfo());
 //        sendRequest(new GetNetworkInfo());
 //        sendRequest(new GetWalletInfo());
-        sendRequest(new GetBlockCount());
+//        sendRequest(new GetBlockCount());
+//        sendRequest(new EstimateSmartFee(3));
+//        sendRequest(new ListWallets());
 
         // Tests
+//        sendRequest(new CreateWallet("TestWallet"));
 //        sendRequest(new ListWallets());
 //        sendRequest(new GetNewAddress());
 

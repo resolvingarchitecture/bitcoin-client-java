@@ -12,7 +12,7 @@ public class CreateWallet extends RPCRequest {
     public static final String NAME = "createwallet";
 
     // Request
-    public String walletName; // The name for the new wallet. If this is a path, the wallet will be created at the path location.
+    public String walletName; // The name for the new wallet. Required. If this is a path, the wallet will be created at the path location.
     public Boolean disablePrivateKeys = false; // Disable the possibility of private keys (only watchonlys are possible in this mode).
     public Boolean blank = false; // Create a blank wallet. A blank wallet has no keys or HD seed. One can be set using sethdseed.
 
@@ -26,6 +26,7 @@ public class CreateWallet extends RPCRequest {
 
     public CreateWallet(String walletName, Boolean disablePrivateKeys, Boolean blank) {
         super(NAME);
+        this.walletName = walletName;
         this.disablePrivateKeys = disablePrivateKeys;
         this.blank = blank;
     }
@@ -33,7 +34,7 @@ public class CreateWallet extends RPCRequest {
     @Override
     public Map<String, Object> toMap() {
         // Request
-        if(walletName!=null) params.add(walletName);
+        params.add(walletName);
         if(disablePrivateKeys!=null) params.add(disablePrivateKeys);
         if(blank!=null) params.add(blank);
         return super.toMap();
