@@ -83,6 +83,7 @@ public class BitcoinService extends BaseService {
                     updateInfo(request, response);
                 }
                 requests.remove(response.id);
+                e.addNVP(RPCCommand.RESPONSE, response);
                 break;
             }
             case OPERATION_RPC_REQUEST: {
