@@ -1,7 +1,6 @@
 package ra.btc;
 
 import ra.btc.rpc.RPCRequest;
-import ra.btc.rpc.blockchain.GetBlockCount;
 import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
@@ -9,11 +8,8 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
-import ra.btc.rpc.util.EstimateSmartFee;
-import ra.btc.rpc.wallet.CreateWallet;
 import ra.btc.rpc.wallet.GetBalance;
 import ra.btc.rpc.wallet.GetWalletInfo;
-import ra.btc.rpc.wallet.ListWallets;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -95,7 +91,11 @@ public class BitcoinService extends BaseService {
     }
 
     private boolean forwardRequest(Envelope e) {
-        RPCRequest request = (RPCRequest) e.getValue(RPCCommand.NAME);
+        RPCRequest request = RPCRequest.inflate((Map<String,Object>) e.getValue(RPCCommand.NAME));
+        if(request==null) {
+            LOG.warning("Unable to inflate RPCRequest; ignoring.");
+            return false;
+        }
         request.id = e.getId();
         requests.put(request.id, request);
         e.setURL(BitcoinService.rpcUrl);
@@ -126,7 +126,7 @@ public class BitcoinService extends BaseService {
     }
 
     private void updateInfo(RPCRequest request, RPCResponse response) {
-        switch(request.method) {
+        switch(request.clazz) {
             // TODO: Refactor out switch by passing fully qualified class name and using reflection to create instance then map
             case GetBlockchainInfo.NAME: {
                 GetBlockchainInfo gbi = (GetBlockchainInfo) request;

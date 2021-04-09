@@ -26,8 +26,8 @@ public class SignRawTransactionWithKey extends RPCRequest {
     public static final String SIGHASHTYPE_SINGLE_ANYPAY = "SINGLE|ANYONECANPAY";
 
     // Request
-    public final String hexstring; // The transaction hex string; required
-    public final List<String> privKeys; // base58-encoded private keys for signing; required
+    public String hexstring; // The transaction hex string; required
+    public List<String> privKeys; // base58-encoded private keys for signing; required
     public List<UTXO> prevTxs; // previous dependent transaction outputs; optional, may be null
     public String sigHashType = SIGHASHTYPE_ALL; // The signature hash type; default = ALL
 
@@ -36,28 +36,26 @@ public class SignRawTransactionWithKey extends RPCRequest {
     public Boolean complete; // If the transaction has a complete set of signatures
     public List<ScriptVerificationError> errors; // Script verification errors (if there are any)
 
+    public SignRawTransactionWithKey() {}
+
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys) {
-        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
     }
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys, List<UTXO> prevTxs) {
-        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
         this.prevTxs = prevTxs;
     }
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys, String sigHashType) {
-        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
         this.sigHashType = sigHashType;
     }
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys, List<UTXO> prevTxs, String sigHashType) {
-        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
         this.prevTxs = prevTxs;

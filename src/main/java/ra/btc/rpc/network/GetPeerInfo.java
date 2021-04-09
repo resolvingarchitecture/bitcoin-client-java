@@ -6,7 +6,5 @@ public class GetPeerInfo extends RPCRequest {
 
     public static final String NAME = "getpeerinfo";
 
-    public GetPeerInfo() {
-        super(NAME);
-    }
+    public GetPeerInfo() {}
 }

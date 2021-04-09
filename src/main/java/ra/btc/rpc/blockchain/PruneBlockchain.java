@@ -10,8 +10,9 @@ public class PruneBlockchain extends RPCRequest {
     // Request
     public Integer height; // The block height to prune up to. May be set to a discrete height, or a unix timestamp to prune blocks whose block time is at least 2 hours older than the provided timestamp.
 
+    public PruneBlockchain() {}
+
     public PruneBlockchain(Integer height) {
-        super(NAME);
         this.height = height;
     }
 

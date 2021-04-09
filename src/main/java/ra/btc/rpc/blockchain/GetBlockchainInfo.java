@@ -12,9 +12,7 @@ public class GetBlockchainInfo extends RPCRequest {
     // Response
     public BlockchainInfo info;
 
-    public GetBlockchainInfo() {
-        super(NAME);
-    }
+    public GetBlockchainInfo() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

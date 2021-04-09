@@ -22,8 +22,9 @@ public class AddNode extends RPCRequest {
     public String node; // The node (see getpeerinfo for nodes)
     public Command command; // ‘add’ to add a node to the list, ‘remove’ to remove a node from the list, ‘onetry’ to try a connection to the node once
 
+    public AddNode() {}
+
     public AddNode(String node, Command command) {
-        super(NAME);
         this.node = node;
         this.command = command;
     }

@@ -8,7 +8,5 @@ public class GetBestBlockHash extends RPCRequest {
 
     public String blockhash;
 
-    public GetBestBlockHash() {
-        super(NAME);
-    }
+    public GetBestBlockHash() {}
 }

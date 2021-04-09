@@ -25,9 +25,7 @@ public class GetBalance extends RPCRequest {
     /**
      * The total amount in the wallet with 1 or more confirmations.
      */
-    public GetBalance() {
-        super(NAME);
-    }
+    public GetBalance() {}
 
     /**
      * The total amount in the wallet at least minconf blocks confirmed, including/excluding watch-only addresses
@@ -36,7 +34,6 @@ public class GetBalance extends RPCRequest {
      * @param includeWatchOnly
      */
     public GetBalance(String dummy, Integer minconf, Boolean includeWatchOnly) {
-        super(NAME);
         this.dummy = dummy;
         this.minconf = minconf;
         this.includeWatchOnly = includeWatchOnly;

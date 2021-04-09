@@ -13,12 +13,9 @@ public class Help extends RPCRequest {
     // Response
     public String txt; // The help text
 
-    public Help() {
-        super(NAME);
-    }
+    public Help() {}
 
     public Help(String command) {
-        super(NAME);
         this.command = command;
     }
 

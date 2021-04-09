@@ -36,8 +36,9 @@ public class ScanTxOutSet extends RPCRequest {
     public List<UTXO> unspents;
     public Double totalAmount;
 
+    public ScanTxOutSet() {}
+
     public ScanTxOutSet(Action action, List<ScanObject> scanobjects) {
-        super(NAME);
         this.action = action;
         this.scanobjects = scanobjects;
     }

@@ -20,14 +20,14 @@ public class GetTxOut extends RPCRequest {
     // Response
     public UTXO utxo;
 
+    public GetTxOut(){}
+
     public GetTxOut(String txId, Integer n) {
-        super(NAME);
         this.txId = txId;
         this.n = n;
     }
 
     public GetTxOut(String txId, Integer n, Boolean includeMempool) {
-        super(NAME);
         this.txId = txId;
         this.n = n;
         this.includeMempool = includeMempool;

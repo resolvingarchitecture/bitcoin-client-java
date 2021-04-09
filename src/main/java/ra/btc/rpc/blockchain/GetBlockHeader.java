@@ -10,19 +10,19 @@ public class GetBlockHeader extends RPCRequest {
     public static final String NAME = "getblockheader";
 
     // Request
-    public String blockhash;
-    public Boolean verbose = true;
+    public String blockhash; // Required
+    public Boolean verbose = true; // Optional; default=true
 
     // Response
     public BlockHeader blockHeader;
 
+    public GetBlockHeader() {}
+
     public GetBlockHeader(String blockhash) {
-        super(NAME);
         this.blockhash = blockhash;
     }
 
     public GetBlockHeader(String blockhash, Boolean verbose) {
-        super(NAME);
         this.blockhash = blockhash;
         this.verbose = verbose;
     }

@@ -20,8 +20,9 @@ public class Generate extends RPCRequest {
     // Response
     public List<String> blockHashes; // hashes of blocks generated
 
+    public Generate() {}
+
     public Generate(Integer nBlocks) {
-        super(NAME);
         this.nBlocks = nBlocks;
     }
 

@@ -9,8 +9,6 @@ public class ClearBanned extends RPCRequest {
 
     public static final String NAME = "clearbanned";
 
-    public ClearBanned() {
-        super(NAME);
-    }
+    public ClearBanned() {}
 
 }

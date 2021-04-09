@@ -15,22 +15,22 @@ public class DeriveAddress extends RPCRequest {
     public static final String NAME = "deriveaddresses";
 
     // Request
-    public final String descriptor;
-    public final Integer begin;
-    public final Integer end;
+    public String descriptor;
+    public Integer begin;
+    public Integer end;
 
     // Response
     public List<String> addresses;
 
+    public DeriveAddress() {}
+
     public DeriveAddress(String descriptor) {
-        super(NAME);
         this.descriptor = descriptor;
         this.begin = null;
         this.end = null;
     }
 
     public DeriveAddress(String descriptor, Integer begin, Integer end) {
-        super(NAME);
         this.descriptor = descriptor;
         this.begin = begin;
         this.end = end;

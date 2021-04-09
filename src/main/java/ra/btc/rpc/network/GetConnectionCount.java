@@ -14,9 +14,7 @@ public class GetConnectionCount extends RPCRequest {
     // Response
     public Integer numberConnections;
 
-    public GetConnectionCount() {
-        super(NAME);
-    }
+    public GetConnectionCount() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

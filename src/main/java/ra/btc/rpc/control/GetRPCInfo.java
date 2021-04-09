@@ -14,9 +14,7 @@ public class GetRPCInfo extends RPCRequest {
     // Response
     public Map<String,Long> runningTimes; // RPC Command Name, running time in microseconds
 
-    public GetRPCInfo() {
-        super(NAME);
-    }
+    public GetRPCInfo() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

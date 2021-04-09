@@ -3,7 +3,6 @@ package ra.btc.rpc.blockchain;
 import ra.btc.BlockchainTxStats;
 import ra.btc.rpc.RPCRequest;
 
-import java.util.List;
 import java.util.Map;
 
 public class GetChainTxStats extends RPCRequest {
@@ -11,8 +10,9 @@ public class GetChainTxStats extends RPCRequest {
 
     public BlockchainTxStats blockchainTxStats = new BlockchainTxStats();
 
+    public GetChainTxStats() {}
+
     public GetChainTxStats(Integer nBlocks, String blockhash) {
-        super(NAME);
         this.blockchainTxStats.nBlocks = nBlocks;
         this.blockchainTxStats.blockhash = blockhash;
     }

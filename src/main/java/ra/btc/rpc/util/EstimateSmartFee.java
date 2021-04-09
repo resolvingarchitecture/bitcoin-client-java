@@ -30,13 +30,13 @@ public class EstimateSmartFee extends RPCRequest {
     public List<String> errors; // Errors encountered during processing
     public Integer blocks; // block number where estimate was found
 
+    public EstimateSmartFee() {}
+
     public EstimateSmartFee(Integer confirmationTarget) {
-        super(NAME);
         confTarget = confirmationTarget;
     }
 
     public EstimateSmartFee(Integer confirmationTarget, String estimateMode) {
-        super(NAME);
         confTarget = confirmationTarget;
         this.estimateMode = estimateMode;
     }

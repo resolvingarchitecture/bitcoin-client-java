@@ -36,22 +36,18 @@ public class Logging extends RPCRequest {
     public Map<Command,Boolean> statuses; // keys are the logging categories, and values indicates its status; "category": true|false,  (bool) if being debug logged or not. false:inactive, true:active
 
     public Logging() {
-        super(NAME);
         include.add(Command.all);
     }
 
     public Logging(Command command) {
-        super(NAME);
         include.add(command);
     }
 
     public Logging(List<Command> commands) {
-        super(NAME);
         include = commands;
     }
 
     public Logging(List<Command> include, List<Command> exclude) {
-        super(NAME);
         this.include = include;
         this.exclude = exclude;
     }

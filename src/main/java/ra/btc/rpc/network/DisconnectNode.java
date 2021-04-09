@@ -21,13 +21,13 @@ public class DisconnectNode extends RPCRequest {
     public String address; // The IP address:port of the node
     public Integer nodeId; // The node ID (see getpeerinfo for node IDs)
 
+    public DisconnectNode() {}
+
     public DisconnectNode(String address) {
-        super(NAME);
         this.address = address;
     }
 
     public DisconnectNode(Integer nodeId) {
-        super(NAME);
         this.address = "";
         this.nodeId = nodeId;
     }

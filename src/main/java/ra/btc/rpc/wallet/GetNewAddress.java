@@ -16,22 +16,17 @@ public class GetNewAddress extends RPCRequest {
     // Response
     public String address;
 
-    public GetNewAddress() {
-        super(NAME);
-    }
+    public GetNewAddress() {}
 
     public GetNewAddress(String label) {
-        super(NAME);
         this.label = label;
     }
 
     public GetNewAddress(AddressType addressType) {
-        super(NAME);
         this.addressType = addressType;
     }
 
     public GetNewAddress(String label, AddressType addressType) {
-        super(NAME);
         this.label = label;
         this.addressType = addressType;
     }

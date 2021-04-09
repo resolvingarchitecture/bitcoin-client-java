@@ -17,13 +17,10 @@ public class GetMemoryInfo extends RPCRequest {
     public Memory memory;
     public String mallocInfo;
 
-    public GetMemoryInfo() {
-        super(NAME);
-    }
+    public GetMemoryInfo() {}
 
     public GetMemoryInfo(MODE mode) {
-        super(NAME);
-
+        this.mode = mode;
     }
 
     @Override

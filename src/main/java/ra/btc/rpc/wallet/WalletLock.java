@@ -12,7 +12,5 @@ public class WalletLock extends RPCRequest {
 
     public static final String NAME = "walletlock";
 
-    public WalletLock() {
-        super(NAME);
-    }
+    public WalletLock() {}
 }

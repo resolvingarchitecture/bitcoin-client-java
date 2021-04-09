@@ -13,20 +13,20 @@ public class GetBlock extends RPCRequest {
     public enum Verbosity {HEX, JSON, JSONTX}
 
     // Request
-    public String blockhash;
-    public Verbosity verbosity;
+    public String blockhash; // Required
+    public Verbosity verbosity; // Optional; options=hex, json, jsontx; default=json
 
     // Response
     public Block block;
 
+    public GetBlock() {}
+
     public GetBlock(String blockHash) {
-        super(NAME);
         this.blockhash = blockHash;
         this.verbosity = Verbosity.JSON;
     }
 
     public GetBlock(String blockHash, Verbosity verbosity) {
-        super(NAME);
         this.blockhash = blockHash;
         this.verbosity = verbosity;
     }

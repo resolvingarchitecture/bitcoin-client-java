@@ -11,9 +11,7 @@ public class GetDifficulty extends RPCRequest {
     // Response
     public Double difficulty;
 
-    public GetDifficulty() {
-        super(NAME);
-    }
+    public GetDifficulty() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

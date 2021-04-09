@@ -26,14 +26,14 @@ public class CreateMultiSig extends RPCRequest {
     public String address; // the new multisig address.
     public String redeemScript; // string value of the hex-encoded redemption script.
 
+    public CreateMultiSig() {}
+
     public CreateMultiSig(Integer nRequired, List<String> keys) {
-        super(NAME);
         this.nRequired = nRequired;
         this.keys = keys;
     }
 
     public CreateMultiSig(Integer nRequired, List<String> keys, String addressType) {
-        super(NAME);
         this.nRequired = nRequired;
         this.keys = keys;
         this.addressType = addressType;

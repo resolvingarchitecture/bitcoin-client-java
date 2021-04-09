@@ -24,13 +24,13 @@ public class GetTxOutProof extends RPCRequest {
     // Response
     public String data; // A string that is a serialized, hex-encoded data for the proof.
 
+    public GetTxOutProof() {}
+
     public GetTxOutProof(List<String> txIds) {
-        super(NAME);
         this.txIds = txIds;
     }
 
     public GetTxOutProof(List<String> txIds, String blockhash) {
-        super(NAME);
         this.txIds = txIds;
         this.blockhash = blockhash;
     }

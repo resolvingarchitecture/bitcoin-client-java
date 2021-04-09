@@ -11,9 +11,7 @@ public class GetBlockHash extends RPCRequest {
     // Response
     public String hash;
 
-    public GetBlockHash() {
-        super(NAME);
-    }
+    public GetBlockHash() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

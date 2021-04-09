@@ -11,9 +11,7 @@ public class GetWalletInfo extends RPCRequest {
 
     public BTCWallet wallet;
 
-    public GetWalletInfo() {
-        super(NAME);
-    }
+    public GetWalletInfo() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

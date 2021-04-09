@@ -9,14 +9,15 @@ public class LoadWallet extends RPCRequest {
     public static final String NAME = "loadwallet";
 
     // Request
-    private final String filename;
+    private String filename;
 
     // Response
     private String name;
     private String warning;
 
+    public LoadWallet() {}
+
     public LoadWallet(String filename) {
-        super(NAME);
         this.filename = filename;
     }
 

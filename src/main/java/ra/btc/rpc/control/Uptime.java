@@ -13,9 +13,7 @@ public class Uptime extends RPCRequest {
     // Response
     public Integer uptimeSeconds; // The number of seconds that the server has been running
 
-    public Uptime() {
-        super(NAME);
-    }
+    public Uptime() {}
 
     @Override
     public void fromMap(Map<String, Object> m) {

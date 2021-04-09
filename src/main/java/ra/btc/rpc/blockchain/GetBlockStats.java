@@ -19,13 +19,13 @@ public class GetBlockStats extends RPCRequest {
 
     public BlockStats blockStats = new BlockStats();
 
+    public GetBlockStats() {}
+
     public GetBlockStats(String hashOrHeight) {
-        super(NAME);
         this.blockStats.hashOrHeight = hashOrHeight;
     }
 
     public GetBlockStats(String hashOrHeight, List<String> stats) {
-        super(NAME);
         this.blockStats.hashOrHeight = hashOrHeight;
         this.blockStats.stats = stats;
     }

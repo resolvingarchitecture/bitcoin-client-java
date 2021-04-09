@@ -14,8 +14,9 @@ public class GetMempoolEntry extends RPCRequest {
 
     public MempoolEntry entry = new MempoolEntry();
 
+    public GetMempoolEntry(){}
+
     public GetMempoolEntry(String txId) {
-        super(NAME);
         this.entry.transactionId = txId;
     }
 

@@ -19,8 +19,9 @@ public class GenerateToAddress extends RPCRequest {
     // Response
     public List<String> blockHashes; // hashes of blocks generated
 
+    public GenerateToAddress() {}
+
     public GenerateToAddress(Integer nBlocks) {
-        super(NAME);
         this.nBlocks = nBlocks;
     }
 
