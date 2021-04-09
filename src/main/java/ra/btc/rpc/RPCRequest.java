@@ -14,15 +14,13 @@ public abstract class RPCRequest implements JSONSerializable {
 
     private static Logger LOG = Logger.getLogger(RPCRequest.class.getName());
 
-    public String clazz;
+    public final String clazz = this.getClass().getName();
 
-    public String jsonrpc = "1.0";
+    public final String jsonrpc = "1.0";
     public String id;
     public List<Object> params = new ArrayList<>();
 
-    protected RPCRequest() {
-        clazz = this.getClass().getName();
-    }
+    protected RPCRequest() {}
 
     public static RPCRequest inflate(Map<String,Object> m) {
         String clazz = (String)m.get("clazz");
@@ -40,9 +38,9 @@ public abstract class RPCRequest implements JSONSerializable {
     public Map<String, Object> toMap() {
         // Request
         Map<String,Object> m = new HashMap<>();
+        m.put("clazz", clazz);
         if(jsonrpc!=null) m.put("jsonrpc", jsonrpc);
         if(id!=null) m.put("id", id);
-        if(clazz !=null) m.put("clazz", clazz);
         if(params!=null) m.put("params", params);
         return m;
     }
