@@ -96,7 +96,8 @@ public class BitcoinService extends BaseService {
         try {
             request = RPCRequest.inflate((Map<String,Object>) e.getValue(RPCCommand.NAME));
         } catch (Exception ex) {
-            LOG.warning("Unable to inflate RPCRequest; ignoring: "+ex.getLocalizedMessage());
+            LOG.warning("Unable to inflate RPCRequest so can not make Bitcoin RPC call; ignoring: "+ex.getLocalizedMessage());
+            e.addErrorMessage("Unable to inflate RPCRequest so can not make Bitcoin RPC call; ignoring: "+ex.getLocalizedMessage());
             return false;
         }
         request.id = e.getId();
