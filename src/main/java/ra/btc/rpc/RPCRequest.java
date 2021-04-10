@@ -4,6 +4,7 @@ import ra.common.JSONSerializable;
 import ra.util.JSONParser;
 import ra.util.JSONPretty;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,16 +23,16 @@ public abstract class RPCRequest implements JSONSerializable {
 
     protected RPCRequest() {}
 
-    public static RPCRequest inflate(Map<String,Object> m) {
+    public static RPCRequest inflate(Map<String,Object> m) throws
+            ClassNotFoundException,
+            NoSuchMethodException,
+            IllegalAccessException,
+            InvocationTargetException,
+            InstantiationException {
         String clazz = (String)m.get("clazz");
-        try {
-            RPCRequest request = (RPCRequest) Class.forName(clazz).getConstructor().newInstance();
-            request.fromMap(m);
-            return request;
-        } catch (Exception e) {
-            LOG.warning(e.getLocalizedMessage());
-            return null;
-        }
+        RPCRequest request = (RPCRequest) Class.forName(clazz).getConstructor().newInstance();
+        request.fromMap(m);
+        return request;
     }
 
     @Override

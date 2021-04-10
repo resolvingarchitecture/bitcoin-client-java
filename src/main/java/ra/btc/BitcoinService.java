@@ -21,6 +21,7 @@ import ra.util.Config;
 import ra.util.SystemSettings;
 import ra.util.Wait;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.*;
 import java.util.logging.Logger;
@@ -91,9 +92,11 @@ public class BitcoinService extends BaseService {
     }
 
     private boolean forwardRequest(Envelope e) {
-        RPCRequest request = RPCRequest.inflate((Map<String,Object>) e.getValue(RPCCommand.NAME));
-        if(request==null) {
-            LOG.warning("Unable to inflate RPCRequest; ignoring.");
+        RPCRequest request = null;
+        try {
+            request = RPCRequest.inflate((Map<String,Object>) e.getValue(RPCCommand.NAME));
+        } catch (Exception ex) {
+            LOG.warning("Unable to inflate RPCRequest; ignoring: "+ex.getLocalizedMessage());
             return false;
         }
         request.id = e.getId();
