@@ -17,8 +17,9 @@ public abstract class RPCRequest implements JSONSerializable {
 
     public final String clazz = this.getClass().getName();
 
-    public final String jsonrpc = "1.0";
-    public final String name;
+    public String jsonrpc = "1.0";
+    public String name;
+    public String path = "";
     public String id;
     public List<Object> params = new ArrayList<>();
 
@@ -51,7 +52,12 @@ public abstract class RPCRequest implements JSONSerializable {
     }
 
     @Override
-    public void fromMap(Map<String, Object> m) {}
+    public void fromMap(Map<String, Object> m) {
+        if(m.get("id")!=null) id = (String)m.get("id");
+        if(m.get("method")!=null) name = (String)m.get("method");
+        if(m.get("jsonrpc")!=null) jsonrpc = (String)m.get("jsonrpc");
+        if(m.get("params")!=null) params = (List<Object>)m.get("params");
+    }
 
     @Override
     public String toJSON() {

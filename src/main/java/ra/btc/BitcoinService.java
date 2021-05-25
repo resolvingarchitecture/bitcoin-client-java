@@ -23,6 +23,7 @@ import ra.util.JSONParser;
 import ra.util.SystemSettings;
 import ra.util.Wait;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.logging.Logger;
@@ -102,7 +103,11 @@ public class BitcoinService extends BaseService {
         String operation = route.getOperation();
         switch(operation) {
             case OPERATION_RPC_REQUEST: {
-                forwardRequest(e);
+                try {
+                    forwardRequest(e);
+                } catch (MalformedURLException malformedURLException) {
+                    LOG.warning(malformedURLException.getLocalizedMessage());
+                }
                 break;
             }
             case OPERATION_RPC_RESPONSE: {
@@ -112,7 +117,15 @@ public class BitcoinService extends BaseService {
                     break;
                 }
                 RPCResponse response = new RPCResponse();
-                String result = new String((byte[])obj);
+                String result = null;
+                if(obj instanceof String) {
+                    result = (String)obj;
+                } else if(obj instanceof byte[]) {
+                    result = new String((byte[]) obj);
+                } else {
+                    LOG.warning("Unsupported response type.");
+                    return;
+                }
                 LOG.info("BTC RPC Result: "+result);
                 response.fromJSON(result);
                 RPCRequest request = requests.get(response.id);
@@ -125,7 +138,7 @@ public class BitcoinService extends BaseService {
         }
     }
 
-    private void forwardRequest(Envelope e) {
+    private void forwardRequest(Envelope e) throws MalformedURLException {
         Object reqObj = e.getValue(RPCCommand.NAME);
         if(reqObj==null) {
             e.addErrorMessage(RPCCommand.NAME + " value required.");
@@ -157,7 +170,7 @@ public class BitcoinService extends BaseService {
         }
         request.id = e.getId();
         requests.put(request.id, request);
-        e.setURL(BitcoinService.rpcUrl);
+        e.setURL(new URL(BitcoinService.rpcUrl, request.path));
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
         e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
@@ -167,12 +180,12 @@ public class BitcoinService extends BaseService {
         send(e);
     }
 
-    private boolean sendRequest(RPCRequest request) {
+    private boolean sendRequest(RPCRequest request) throws MalformedURLException {
         Envelope e = Envelope.documentFactory();
         e.addNVP(RPCCommand.NAME, request);
         request.id = e.getId();
         requests.put(request.id, request);
-        e.setURL(BitcoinService.rpcUrl);
+        e.setURL(new URL(BitcoinService.rpcUrl, request.path));
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
         e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
@@ -246,7 +259,7 @@ public class BitcoinService extends BaseService {
                 }
                 case GetBalance.NAME: {
                     GetBalance gb = (GetBalance) request;
-                    gb.fromMap((Map<String, Object>) response.result);
+                    gb.amount = (Double)response.result;
                     LOG.info("Balance: " + gb.amount);
                     break;
                 }

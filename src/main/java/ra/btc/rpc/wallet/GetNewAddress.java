@@ -9,6 +9,8 @@ public class GetNewAddress extends RPCRequest {
 
     public static final String NAME = "getnewaddress";
 
+    public String walletName = "Default";
+
     // Request
     public String label;
     public AddressType addressType;
@@ -16,20 +18,26 @@ public class GetNewAddress extends RPCRequest {
     // Response
     public String address;
 
-    public GetNewAddress() {super(NAME);}
+    public GetNewAddress() {
+        super(NAME);
+        path += "/wallet/"+walletName;
+    }
 
     public GetNewAddress(String label) {
         super(NAME);
+        path += "/wallet/"+walletName;
         this.label = label;
     }
 
     public GetNewAddress(AddressType addressType) {
         super(NAME);
+        path += "/wallet/"+walletName;
         this.addressType = addressType;
     }
 
     public GetNewAddress(String label, AddressType addressType) {
         super(NAME);
+        path += "/wallet/"+walletName;
         this.label = label;
         this.addressType = addressType;
     }
@@ -39,7 +47,7 @@ public class GetNewAddress extends RPCRequest {
         // Request
         if(label!=null) params.add(label);
         if(addressType!=null) {
-            params.add(addressType);
+            params.add(addressType.name());
         }
         return super.toMap();
     }
@@ -47,6 +55,6 @@ public class GetNewAddress extends RPCRequest {
     @Override
     public void fromMap(Map<String, Object> m) {
         // Response
-        address = (String)m.get("address");
+        address = (String)m.get("str");
     }
 }

@@ -10,25 +10,19 @@ import java.util.Map;
  * The available balance is what the wallet considers currently spendable,
  * and is thus affected by options which limit spendability such as -spendzeroconfchange.
  *
- * Doesn't work, get a 500 error with message:
- * {
- *     "result": null,
- *     "error": {
- *         "code": -19,
- *         "message": "Wallet file not specified (must request wallet RPC through /wallet/<filename> uri-path)."
- *     },
- *     "id": "1234"
- * }
+ * Make sure walletName is set to currently loaded wallet.
  */
 public class GetBalance extends RPCRequest {
 
     public static final String NAME = "getbalance";
 
+    public String walletName = "Default";
+
     // Request
     public String dummy = "*";
     public Integer minconf = 0;
     public Boolean includeWatchOnly = true;
-    public Boolean avoidReuse = true;
+    public Boolean avoidReuse = false;
 
     // Response
     public Double amount;
@@ -36,7 +30,10 @@ public class GetBalance extends RPCRequest {
     /**
      * The total amount in the wallet with 1 or more confirmations.
      */
-    public GetBalance() {super(NAME);}
+    public GetBalance() {
+        super(NAME);
+        path += "/wallet/"+walletName;
+    }
 
     /**
      * The total amount in the wallet at least minconf blocks confirmed, including/excluding watch-only addresses
@@ -47,6 +44,7 @@ public class GetBalance extends RPCRequest {
      */
     public GetBalance(String dummy, Integer minconf, Boolean includeWatchOnly, Boolean avoidReuse) {
         super(NAME);
+        path += "/wallet/"+walletName;
         this.dummy = dummy;
         this.minconf = minconf;
         this.includeWatchOnly = includeWatchOnly;
@@ -65,6 +63,7 @@ public class GetBalance extends RPCRequest {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        amount = (Double)m.get("amount");
+        super.fromMap(m);
+        if(m.get("amount")!=null) amount = (Double)m.get("amount");
     }
 }
