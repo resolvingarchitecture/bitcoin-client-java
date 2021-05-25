@@ -20,13 +20,15 @@ public class DecodeRawTransaction extends RPCRequest {
     // Response
     public Transaction tx; // the decoded transaction
 
-    public DecodeRawTransaction() {}
+    public DecodeRawTransaction() {super(NAME);}
 
     public DecodeRawTransaction(String hexstring) {
+        super(NAME);
         this.hexstring = hexstring;
     }
 
     public DecodeRawTransaction(String hexstring, Boolean isWitness) {
+        super(NAME);
         this.hexstring = hexstring;
         this.isWitness = isWitness;
     }

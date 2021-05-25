@@ -15,9 +15,10 @@ public class RescanBlockchain extends RPCRequest {
     public Integer startHeight = 0;
     public Integer stopHeight;
 
-    public RescanBlockchain() {}
+    public RescanBlockchain() {super(NAME);}
 
     public RescanBlockchain(Integer startHeight, Integer stopHeight) {
+        super(NAME);
         this.startHeight = startHeight;
         this.stopHeight = stopHeight;
     }

@@ -10,7 +10,7 @@ import java.util.Map;
 public class RPCResponse implements JSONSerializable {
 
     public String id;
-    public Object error;
+    public RPCError error;
     public Object result;
 
     @Override
@@ -26,7 +26,10 @@ public class RPCResponse implements JSONSerializable {
     public void fromMap(Map<String, Object> m) {
         if(m.get("id")!=null) id = (String)m.get("id");
         if(m.get("error")!=null) {
-            error = m.get("error");
+            Map<String,Object> errorMap = (Map<String,Object>)m.get("error");
+            error = new RPCError();
+            error.code = (Integer)errorMap.get("code");
+            error.message = (String)errorMap.get("message");
         }
         if(m.get("result")!=null) {
            result = m.get("result");

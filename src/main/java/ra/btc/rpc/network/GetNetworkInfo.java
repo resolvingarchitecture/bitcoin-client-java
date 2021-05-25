@@ -12,7 +12,7 @@ public class GetNetworkInfo extends RPCRequest {
     // Response
     public NetworkInfo networkInfo;
 
-    public GetNetworkInfo() {}
+    public GetNetworkInfo() {super(NAME);}
 
     @Override
     public void fromMap(Map<String, Object> m) {

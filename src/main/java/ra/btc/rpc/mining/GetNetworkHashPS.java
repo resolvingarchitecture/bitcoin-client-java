@@ -21,13 +21,15 @@ public class GetNetworkHashPS extends RPCRequest {
     // Response
     public Integer hashesPerSecEst; // Hashes per second estimated
 
-    public GetNetworkHashPS() {}
+    public GetNetworkHashPS() {super(NAME);}
 
     public GetNetworkHashPS(Integer nBlocks) {
+        super(NAME);
         this.nBlocks = nBlocks;
     }
 
     public GetNetworkHashPS(Integer nBlocks, Integer height) {
+        super(NAME);
         this.nBlocks = nBlocks;
         this.height = height;
     }

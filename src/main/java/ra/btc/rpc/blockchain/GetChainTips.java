@@ -16,7 +16,7 @@ public class GetChainTips extends RPCRequest {
 
     public List<ChainTip> chainTips = new ArrayList<>();
 
-    public GetChainTips() {}
+    public GetChainTips() {super(NAME);}
 
     @Override
     public void fromMap(Map<String, Object> m) {

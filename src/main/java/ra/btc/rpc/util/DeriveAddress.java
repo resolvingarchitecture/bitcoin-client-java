@@ -22,15 +22,17 @@ public class DeriveAddress extends RPCRequest {
     // Response
     public List<String> addresses;
 
-    public DeriveAddress() {}
+    public DeriveAddress() {super(NAME);}
 
     public DeriveAddress(String descriptor) {
+        super(NAME);
         this.descriptor = descriptor;
         this.begin = null;
         this.end = null;
     }
 
     public DeriveAddress(String descriptor, Integer begin, Integer end) {
+        super(NAME);
         this.descriptor = descriptor;
         this.begin = begin;
         this.end = end;

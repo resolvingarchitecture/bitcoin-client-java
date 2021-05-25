@@ -20,7 +20,7 @@ public class AddMultisigAddress extends RPCRequest {
     public String multisigAddress;
     public String redeemScript;
 
-    public AddMultisigAddress(){}
+    public AddMultisigAddress(){super(NAME);}
 
     /**
      *
@@ -29,6 +29,7 @@ public class AddMultisigAddress extends RPCRequest {
      * @param addressType The address type to use. Options are “legacy”, “p2sh-segwit”, and “bech32”.
      */
     public AddMultisigAddress(Integer nRequired, List<String> keys, AddressType addressType) {
+        super(NAME);
         this.nRequired = nRequired;
         this.keys = keys;
         this.addressType = addressType;

@@ -19,14 +19,16 @@ public class GetBlock extends RPCRequest {
     // Response
     public Block block;
 
-    public GetBlock() {}
+    public GetBlock() {super(NAME);}
 
     public GetBlock(String blockHash) {
+        super(NAME);
         this.blockhash = blockHash;
         this.verbosity = Verbosity.JSON;
     }
 
     public GetBlock(String blockHash, Verbosity verbosity) {
+        super(NAME);
         this.blockhash = blockHash;
         this.verbosity = verbosity;
     }

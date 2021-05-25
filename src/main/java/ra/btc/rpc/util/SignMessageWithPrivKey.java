@@ -17,9 +17,10 @@ public class SignMessageWithPrivKey extends RPCRequest {
     // Response
     public String signature; // The signature of the message encoded in base 64
 
-    public SignMessageWithPrivKey() {}
+    public SignMessageWithPrivKey() {super(NAME);}
 
     public SignMessageWithPrivKey(String privKey, String message) {
+        super(NAME);
         this.privKey = privKey;
         this.message = message;
     }

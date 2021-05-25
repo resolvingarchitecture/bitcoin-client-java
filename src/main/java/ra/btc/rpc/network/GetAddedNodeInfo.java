@@ -19,9 +19,10 @@ public class GetAddedNodeInfo extends RPCRequest {
     // Response
     public List<BitcoinPeer> peers;
 
-    public GetAddedNodeInfo() {}
+    public GetAddedNodeInfo() {super(NAME);}
 
     public GetAddedNodeInfo(String node) {
+        super(NAME);
         this.node = node;
     }
 

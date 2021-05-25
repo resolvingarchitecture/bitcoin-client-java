@@ -19,7 +19,7 @@ public class WalletPassphrase extends RPCRequest {
     public String passphrase;
     public Integer timeoutSeconds;
 
-    public WalletPassphrase() {}
+    public WalletPassphrase() {super(NAME);}
 
     /**
      *
@@ -27,6 +27,7 @@ public class WalletPassphrase extends RPCRequest {
      * @param timeoutSeconds The time to keep the decryption key in seconds; capped at 100000000 (~3 years).
      */
     public WalletPassphrase(String passphrase, Integer timeoutSeconds) {
+        super(NAME);
         this.passphrase = passphrase;
         this.timeoutSeconds = timeoutSeconds;
     }

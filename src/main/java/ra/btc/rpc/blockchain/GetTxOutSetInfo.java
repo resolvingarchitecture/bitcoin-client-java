@@ -16,7 +16,7 @@ public class GetTxOutSetInfo extends RPCRequest {
     // Response
     public UTXOSet set; // A string that is a serialized, hex-encoded data for the proof.
 
-    public GetTxOutSetInfo() {}
+    public GetTxOutSetInfo() {super(NAME);}
 
     @Override
     public void fromMap(Map<String, Object> m) {

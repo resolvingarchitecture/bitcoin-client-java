@@ -18,10 +18,13 @@ public abstract class RPCRequest implements JSONSerializable {
     public final String clazz = this.getClass().getName();
 
     public final String jsonrpc = "1.0";
+    public final String name;
     public String id;
     public List<Object> params = new ArrayList<>();
 
-    protected RPCRequest() {}
+    protected RPCRequest(String name) {
+        this.name = name;
+    }
 
     public static RPCRequest inflate(Map<String,Object> m) throws
             ClassNotFoundException,
@@ -40,6 +43,7 @@ public abstract class RPCRequest implements JSONSerializable {
         // Request
         Map<String,Object> m = new HashMap<>();
         m.put("clazz", clazz);
+        m.put("method", name);
         if(jsonrpc!=null) m.put("jsonrpc", jsonrpc);
         if(id!=null) m.put("id", id);
         if(params!=null) m.put("params", params);

@@ -17,13 +17,15 @@ public class GetMempoolDescendants extends RPCRequest {
     public Boolean verbose = false;
     public List<MempoolEntry> mempoolEntries = new ArrayList<>();
 
-    public GetMempoolDescendants(){}
+    public GetMempoolDescendants(){super(NAME);}
 
     public GetMempoolDescendants(String txId) {
+        super(NAME);
         this.txId = txId;
     }
 
     public GetMempoolDescendants(String txId, Boolean verbose) {
+        super(NAME);
         this.txId = txId;
         this.verbose = verbose;
     }

@@ -17,9 +17,10 @@ public class VerifyTxOutProof extends RPCRequest {
     // Response
     public List<String> txIds;
 
-    public VerifyTxOutProof() {}
+    public VerifyTxOutProof() {super(NAME);}
 
     public VerifyTxOutProof(String proof) {
+        super(NAME);
         this.proof = proof;
     }
 

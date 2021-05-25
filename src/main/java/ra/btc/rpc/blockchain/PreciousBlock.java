@@ -10,9 +10,10 @@ public class PreciousBlock extends RPCRequest {
     // Request
     public String blockhash; // the hash of the block to mark as precious
 
-    public PreciousBlock(){}
+    public PreciousBlock(){super(NAME);}
 
     public PreciousBlock(String blockhash) {
+        super(NAME);
         this.blockhash = blockhash;
     }
 

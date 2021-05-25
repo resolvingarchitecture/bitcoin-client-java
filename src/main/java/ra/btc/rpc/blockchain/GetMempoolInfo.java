@@ -13,7 +13,7 @@ public class GetMempoolInfo extends RPCRequest {
 
     public MempoolInfo info = new MempoolInfo();
 
-    public GetMempoolInfo() {}
+    public GetMempoolInfo() {super(NAME);}
 
     @Override
     public void fromMap(Map<String, Object> m) {

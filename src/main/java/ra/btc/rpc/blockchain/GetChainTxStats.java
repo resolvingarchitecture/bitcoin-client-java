@@ -10,9 +10,10 @@ public class GetChainTxStats extends RPCRequest {
 
     public BlockchainTxStats blockchainTxStats = new BlockchainTxStats();
 
-    public GetChainTxStats() {}
+    public GetChainTxStats() {super(NAME);}
 
     public GetChainTxStats(Integer nBlocks, String blockhash) {
+        super(NAME);
         this.blockchainTxStats.nBlocks = nBlocks;
         this.blockchainTxStats.blockhash = blockhash;
     }

@@ -16,13 +16,15 @@ public class GetBlockHeader extends RPCRequest {
     // Response
     public BlockHeader blockHeader;
 
-    public GetBlockHeader() {}
+    public GetBlockHeader() {super(NAME);}
 
     public GetBlockHeader(String blockhash) {
+        super(NAME);
         this.blockhash = blockhash;
     }
 
     public GetBlockHeader(String blockhash, Boolean verbose) {
+        super(NAME);
         this.blockhash = blockhash;
         this.verbose = verbose;
     }

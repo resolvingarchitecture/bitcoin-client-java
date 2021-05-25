@@ -19,13 +19,14 @@ public class CreateWallet extends RPCRequest {
     // Response
     public String warning;
 
-    public CreateWallet() {}
+    public CreateWallet() {super(NAME);}
 
     public CreateWallet(String walletName) {
-        this.walletName = walletName;
+        super(NAME);this.walletName = walletName;
     }
 
     public CreateWallet(String walletName, Boolean disablePrivateKeys, Boolean blank) {
+        super(NAME);
         this.walletName = walletName;
         this.disablePrivateKeys = disablePrivateKeys;
         this.blank = blank;

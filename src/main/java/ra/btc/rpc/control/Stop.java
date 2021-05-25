@@ -8,6 +8,6 @@ import ra.btc.rpc.RPCRequest;
 public class Stop extends RPCRequest {
     public static final String NAME = "stop";
 
-    public Stop() {}
+    public Stop() {super(NAME);}
 
 }

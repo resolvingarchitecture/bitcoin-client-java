@@ -36,26 +36,30 @@ public class SignRawTransactionWithKey extends RPCRequest {
     public Boolean complete; // If the transaction has a complete set of signatures
     public List<ScriptVerificationError> errors; // Script verification errors (if there are any)
 
-    public SignRawTransactionWithKey() {}
+    public SignRawTransactionWithKey() {super(NAME);}
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys) {
+        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
     }
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys, List<UTXO> prevTxs) {
+        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
         this.prevTxs = prevTxs;
     }
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys, String sigHashType) {
+        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
         this.sigHashType = sigHashType;
     }
 
     public SignRawTransactionWithKey(String hexstring, List<String> privKeys, List<UTXO> prevTxs, String sigHashType) {
+        super(NAME);
         this.hexstring = hexstring;
         this.privKeys = privKeys;
         this.prevTxs = prevTxs;

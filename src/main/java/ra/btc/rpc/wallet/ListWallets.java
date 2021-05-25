@@ -12,7 +12,7 @@ public class ListWallets extends RPCRequest {
     // Response
     public List<String> wallets = new ArrayList<>();
 
-    public ListWallets() {}
+    public ListWallets() {super(NAME);}
 
     @Override
     public void fromMap(Map<String, Object> m) {

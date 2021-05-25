@@ -18,9 +18,10 @@ public class GetRawMempool extends RPCRequest {
     public Boolean verbose = false;
     public List<MempoolEntry> mempoolEntries = new ArrayList<>();
 
-    public GetRawMempool(){}
+    public GetRawMempool(){super(NAME);}
 
     public GetRawMempool(Boolean verbose) {
+        super(NAME);
         this.verbose = verbose;
     }
 

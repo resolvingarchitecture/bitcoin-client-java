@@ -19,13 +19,15 @@ public class SendRawTransaction extends RPCRequest {
     // Response
     public String hex; // The transaction hash in hex
 
-    public SendRawTransaction() {}
+    public SendRawTransaction() {super(NAME);}
 
     public SendRawTransaction(String hexstring) {
+        super(NAME);
         this.hexstring = hexstring;
     }
 
     public SendRawTransaction(String hexstring, Boolean allowhighfees) {
+        super(NAME);
         this.hexstring = hexstring;
         this.allowhighfees = allowhighfees;
     }

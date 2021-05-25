@@ -14,13 +14,14 @@ public class BackupWallet extends RPCRequest {
     // Request
     public String destination;
 
-    public BackupWallet() {}
+    public BackupWallet() {super(NAME);}
 
     /**
      *
      * @param destination Directory or path with a filename
      */
     public BackupWallet(String destination) {
+        super(NAME);
         this.destination = destination;
     }
 

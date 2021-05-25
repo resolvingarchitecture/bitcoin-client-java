@@ -28,14 +28,16 @@ public class CreateRawTransaction extends RPCRequest {
     // Response
     public String transaction; // hex string of the transaction
 
-    public CreateRawTransaction() {}
+    public CreateRawTransaction() {super(NAME);}
 
     public CreateRawTransaction(List<TXI> inputs, List<UTXO> outputs) {
+        super(NAME);
         this.inputs = inputs;
         this.outputs = outputs;
     }
 
     public CreateRawTransaction(List<TXI> inputs, List<UTXO> outputs, Integer lockTime, Boolean replaceable) {
+        super(NAME);
         this.inputs = inputs;
         this.outputs = outputs;
         this.lockTime = lockTime;

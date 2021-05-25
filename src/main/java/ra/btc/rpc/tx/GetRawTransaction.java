@@ -30,18 +30,21 @@ public class GetRawTransaction extends RPCRequest {
     public String data; // If verbose is false or not set
     public Transaction tx; // If verbose is true
 
-    public GetRawTransaction() {}
+    public GetRawTransaction() {super(NAME);}
 
     public GetRawTransaction(String txid) {
+        super(NAME);
         this.txid = txid;
     }
 
     public GetRawTransaction(String txid, Boolean verbose) {
+        super(NAME);
         this.txid = txid;
         this.verbose = verbose;
     }
 
     public GetRawTransaction(String txid, Boolean verbose, String blockhash) {
+        super(NAME);
         this.txid = txid;
         this.verbose = verbose;
         this.blockhash = blockhash;

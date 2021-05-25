@@ -12,9 +12,10 @@ public class WalletPassphraseChange extends RPCRequest {
     public String oldPassphrase;
     public String newPassphrase;
 
-    public WalletPassphraseChange() {}
+    public WalletPassphraseChange() {super(NAME);}
 
     public WalletPassphraseChange(String oldPassphrase, String newPassphrase) {
+        super(NAME);
         this.oldPassphrase = oldPassphrase;
         this.newPassphrase = newPassphrase;
     }

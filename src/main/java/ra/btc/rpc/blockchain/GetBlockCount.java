@@ -11,7 +11,7 @@ public class GetBlockCount extends RPCRequest {
     // Response
     public Integer count;
 
-    public GetBlockCount() {}
+    public GetBlockCount() {super(NAME);}
 
     @Override
     public void fromMap(Map<String, Object> m) {

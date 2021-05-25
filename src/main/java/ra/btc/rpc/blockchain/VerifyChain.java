@@ -13,9 +13,10 @@ public class VerifyChain extends RPCRequest {
     // Response
     public Boolean verified;
 
-    public VerifyChain() {}
+    public VerifyChain() {super(NAME);}
 
     public VerifyChain(Integer checkLevel, Integer nBlocks) {
+        super(NAME);
         this.checkLevel = checkLevel;
         this.nBlocks = nBlocks;
     }

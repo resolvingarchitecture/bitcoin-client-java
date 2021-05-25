@@ -11,9 +11,10 @@ public class EncryptWallet extends RPCRequest {
     // Request
     public String passphrase;
 
-    public EncryptWallet() {}
+    public EncryptWallet() {super(NAME);}
 
     public EncryptWallet(String passphrase) {
+        super(NAME);
         this.passphrase = passphrase;
     }
 
