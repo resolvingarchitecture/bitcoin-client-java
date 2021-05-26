@@ -12,5 +12,10 @@ public class WalletLock extends RPCRequest {
 
     public static final String NAME = "walletlock";
 
-    public WalletLock() {super(NAME);}
+    public String walletName = "Default";
+
+    public WalletLock() {
+        super(NAME);
+        path += "/wallet/"+walletName;
+    }
 }

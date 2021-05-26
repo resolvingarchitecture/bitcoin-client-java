@@ -8,20 +8,27 @@ public class EncryptWallet extends RPCRequest {
 
     public static final String NAME = "encryptwallet";
 
+    public String walletName = "Default";
+
     // Request
     public String passphrase;
 
-    public EncryptWallet() {super(NAME);}
+    public EncryptWallet() {
+        super(NAME);
+        this.passphrase = "1234"; // Only use for testing
+        path += "/wallet/"+walletName;
+    }
 
     public EncryptWallet(String passphrase) {
         super(NAME);
         this.passphrase = passphrase;
+        path += "/wallet/"+walletName;
     }
 
     @Override
     public Map<String, Object> toMap() {
         // Request
-        if(passphrase!=null) params.add(passphrase);
+        params.add(passphrase);
         return super.toMap();
     }
 }

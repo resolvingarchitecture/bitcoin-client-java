@@ -1,6 +1,7 @@
 package ra.btc;
 
 import ra.btc.rpc.RPCRequest;
+import ra.btc.rpc.blockchain.GetBlockCount;
 import ra.btc.rpc.blockchain.GetBlockchainInfo;
 import ra.btc.rpc.blockchain.GetDifficulty;
 import ra.btc.rpc.RPCResponse;
@@ -8,9 +9,11 @@ import ra.btc.rpc.control.Uptime;
 import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
+import ra.btc.rpc.util.EstimateSmartFee;
 import ra.btc.rpc.wallet.GetBalance;
 import ra.btc.rpc.wallet.GetWalletInfo;
 import ra.btc.rpc.wallet.ListWallets;
+import ra.btc.uses.ExchangeForBTC;
 import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
@@ -73,6 +76,7 @@ public class BitcoinService extends BaseService {
     public static final String OPERATION_TAKE_BTC_BUY_OFFER = "TAKE_BTC_BUY_OFFER";
     public static final String OPERATION_MAKE_BTC_SELL_OFFER = "MAKE_BTC_SELL_OFFER";
     public static final String OPERATION_TAKE_BTC_SELL_OFFER = "TAKE_BTC_SELL_OFFER";
+    public static final String OPERATION_EXCHANGE_FOR_BTC = "EXCHANGE_FOR_BTC";
     // ** BTC Trusts **
     public static final String OPERATION_CREATE_REVOCABLE_TRUST = "CREATE_REVOCABLE_TRUST";
     public static final String OPERATION_UPDATE_REVOCABLE_TRUST= "UPDATE_REVOCABLE_TRUST";
@@ -133,6 +137,10 @@ public class BitcoinService extends BaseService {
                 requests.remove(response.id);
                 e.addNVP(RPCCommand.RESPONSE, response);
                 break;
+            }
+            case OPERATION_EXCHANGE_FOR_BTC: {
+                ExchangeForBTC cmd = new ExchangeForBTC();
+
             }
             default: deadLetter(e); // Operation not supported
         }
@@ -269,8 +277,11 @@ public class BitcoinService extends BaseService {
 
     @Override
     public boolean start(Properties p) {
-        LOG.info("Starting....");
+        LOG.info("Starting...");
         updateStatus(ServiceStatus.STARTING);
+        if(!super.start(p))
+            return false;
+        LOG.info("Loading properties...");
         try {
             config = Config.loadAll(p, "ra-btc.config");
             String env = config.getProperty("1m5.env");
@@ -294,14 +305,19 @@ public class BitcoinService extends BaseService {
             return false;
         }
         // Send to establish initial info
-//        sendRequest(new GetBlockchainInfo());
-//        sendRequest(new Uptime());
-//        sendRequest(new GetNetworkHashPS());
-//        sendRequest(new GetPeerInfo());
-//        sendRequest(new GetNetworkInfo());
-//        sendRequest(new GetBlockCount());
-//        sendRequest(new EstimateSmartFee(3));
-//        sendRequest(new ListWallets());
+//        try {
+//            sendRequest(new GetBlockchainInfo());
+//            sendRequest(new Uptime());
+//            sendRequest(new GetNetworkHashPS());
+//            sendRequest(new GetPeerInfo());
+//            sendRequest(new GetNetworkInfo());
+//            sendRequest(new GetBlockCount());
+//            sendRequest(new EstimateSmartFee(3));
+//            sendRequest(new ListWallets());
+//        } catch (Exception ex) {
+//            LOG.warning(ex.getLocalizedMessage());
+//            return false;
+//        }
 
         // Tests
 //        sendRequest(new CreateWallet("TestWallet"));

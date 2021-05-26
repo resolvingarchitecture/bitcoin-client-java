@@ -89,15 +89,9 @@ public class BTCWallet extends CryptoWallet {
     public void fromMap(Map<String, Object> m) {
         name = (String)m.get("walletname");
         version = (Integer)m.get("walletversion");
-        BTC balance = new BTC();
-        balance.setValue((BigInteger)m.get("balance"));
-        super.balance = balance;
-        BTC unconfirmedBalance = new BTC();
-        unconfirmedBalance.setValue((BigInteger)m.get("unconfirmed_balance"));
-        super.unconfirmedBalance = unconfirmedBalance;
-        BTC immatureBalance = new BTC();
-        immatureBalance.setValue((BigInteger)m.get("immature_balance"));
-        super.immatureBalance = immatureBalance;
+        super.balance = new BTC((Double)m.get("balance"));
+        super.unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance"));
+        super.immatureBalance = new BTC((Double)m.get("immature_balance"));
         super.txCount = (Integer)m.get("txcount");
         keypoololdest = (Integer)m.get("keypoololdest");
         keypoolsize = (Integer)m.get("keypoolsize");

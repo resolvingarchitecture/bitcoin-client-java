@@ -9,9 +9,14 @@ public class GetWalletInfo extends RPCRequest {
 
     public static final String NAME = "getwalletinfo";
 
+    public String walletName = "Default";
+
     public BTCWallet wallet;
 
-    public GetWalletInfo() {super(NAME);}
+    public GetWalletInfo() {
+        super(NAME);
+        path += "/wallet/"+walletName;
+    }
 
     @Override
     public void fromMap(Map<String, Object> m) {

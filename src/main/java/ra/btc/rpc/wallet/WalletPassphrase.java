@@ -15,11 +15,16 @@ public class WalletPassphrase extends RPCRequest {
 
     public static final String NAME = "walletpassphrase";
 
-    // Request
-    public String passphrase;
-    public Integer timeoutSeconds;
+    public String walletName = "Default";
 
-    public WalletPassphrase() {super(NAME);}
+    // Request
+    public String passphrase = "1234"; // Default for testing only
+    public Integer timeoutSeconds = 60;
+
+    public WalletPassphrase() {
+        super(NAME);
+        path += "/wallet/"+walletName;
+    }
 
     /**
      *
@@ -30,6 +35,7 @@ public class WalletPassphrase extends RPCRequest {
         super(NAME);
         this.passphrase = passphrase;
         this.timeoutSeconds = timeoutSeconds;
+        path += "/wallet/"+walletName;
     }
 
     @Override

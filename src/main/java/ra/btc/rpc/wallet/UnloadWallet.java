@@ -4,28 +4,27 @@ import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;
 
-public class LoadWallet extends RPCRequest {
+public class UnloadWallet extends RPCRequest {
 
     public static final String NAME = "loadwallet";
 
     // Request
-    public String walletName = "Default";
-    public Boolean loadOnStartup = null;
+    private String walletName = "Default";
+    private Boolean loadOnStartup = null;
 
     // Response
-    public String name;
-    public String warning;
+    private String warning;
 
-    public LoadWallet() {
+    public UnloadWallet() {
         super(NAME);
     }
 
-    public LoadWallet(String walletName) {
+    public UnloadWallet(String walletName) {
         super(NAME);
         this.walletName = walletName;
     }
 
-    public LoadWallet(String walletName, Boolean loadOnStartup) {
+    public UnloadWallet(String walletName, Boolean loadOnStartup) {
         super(NAME);
         this.walletName = walletName;
         this.loadOnStartup = loadOnStartup;
@@ -41,8 +40,6 @@ public class LoadWallet extends RPCRequest {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        name = (String)m.get("name");
         warning = (String)m.get("warning");
     }
-
 }
