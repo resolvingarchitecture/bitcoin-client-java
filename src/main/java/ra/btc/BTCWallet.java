@@ -87,19 +87,19 @@ public class BTCWallet extends CryptoWallet {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        name = (String)m.get("walletname");
-        version = (Integer)m.get("walletversion");
-        super.balance = new BTC((Double)m.get("balance"));
-        super.unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance"));
-        super.immatureBalance = new BTC((Double)m.get("immature_balance"));
-        super.txCount = (Integer)m.get("txcount");
-        keypoololdest = (Integer)m.get("keypoololdest");
-        keypoolsize = (Integer)m.get("keypoolsize");
-        keypoolsizeHdInternal = (Integer)m.get("keypoolsize_hd_internal");
-        unlockedUntil = (Integer)m.get("unlocked_until");
-        paytxfee = (Double)m.get("paytxfee");
-        hdseedid = (String)m.get("hdseedid");
-        privateKeysEnabled = (Boolean)m.get("private_keys_enabled");
+        if(m.get("walletname")!=null )name = (String)m.get("walletname");
+        if(m.get("walletversion")!=null) version = (Integer)m.get("walletversion");
+        if(m.get("balance")!=null) super.balance = new BTC((Double)m.get("balance"));
+        if(m.get("unconfirmed_balance")!=null) super.unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance"));
+        if(m.get("immature_balance")!=null) super.immatureBalance = new BTC((Double)m.get("immature_balance"));
+        if(m.get("txcount")!=null) super.txCount = (Integer)m.get("txcount");
+        if(m.get("keypoololdest")!=null) keypoololdest = (Integer)m.get("keypoololdest");
+        if(m.get("keypoolsize")!=null) keypoolsize = (Integer)m.get("keypoolsize");
+        if(m.get("keypoolsize_hd_internal")!=null) keypoolsizeHdInternal = (Integer)m.get("keypoolsize_hd_internal");
+        if(m.get("unlocked_until")!=null) unlockedUntil = (Integer)m.get("unlocked_until");
+        if(m.get("paytxfee")!=null) paytxfee = (Double)m.get("paytxfee");
+        if(m.get("hdseedid")!=null) hdseedid = (String)m.get("hdseedid");
+        if(m.get("private_keys_enabled")!=null) privateKeysEnabled = (Boolean)m.get("private_keys_enabled");
     }
 
 }
