@@ -29,7 +29,10 @@ public class GetWalletInfo extends RPCRequest {
         // Response
         wallet = new BTCWallet();
         wallet.fromMap(m);
-        this.path = this.path + "/wallet/" + this.walletName;
+        if(wallet.getName()!=null) {
+            this.walletName = wallet.getName();
+            this.path = this.path + "/wallet/" + this.walletName;
+        }
     }
 
 }
