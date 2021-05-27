@@ -8,6 +8,7 @@ import java.util.Map;
 
 public class BTCWallet extends CryptoWallet {
 
+    private String format; // database format - bdb or sqlite
     private Integer keypoololdest; // the timestamp (seconds since Unix epoch) of the oldest pre-generated key in the key pool
     private Integer keypoolsize; // how many new keys are pre-generated (only counts external keys)
     private Integer keypoolsizeHdInternal; // how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)
@@ -15,6 +16,14 @@ public class BTCWallet extends CryptoWallet {
     private Double paytxfee; // the transaction fee configuration, set in BTC/kB
     private String hdseedid; // the Hash160 of the HD seed (only present when HD is enabled)
     private Boolean privateKeysEnabled; // false if privatekeys are disabled for this wallet (enforced watch-only wallet)
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
 
     public Integer getKeypoololdest() {
         return keypoololdest;
@@ -75,6 +84,9 @@ public class BTCWallet extends CryptoWallet {
     @Override
     public Map<String, Object> toMap() {
         Map<String,Object> m = super.toMap();
+        m.put("walletname", name);
+        m.put("walletversion", version);
+        m.put("format", format);
         m.put("keypoololdest", keypoololdest);
         m.put("keypoolsize", keypoolsize);
         m.put("keypoolsize_hd_internal", keypoolsizeHdInternal);
@@ -87,8 +99,9 @@ public class BTCWallet extends CryptoWallet {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        if(m.get("walletname")!=null )name = (String)m.get("walletname");
-        if(m.get("walletversion")!=null) version = (Integer)m.get("walletversion");
+        if(m.get("walletname")!=null ) super.name = (String)m.get("walletname");
+        if(m.get("walletversion")!=null) super.version = (Integer)m.get("walletversion");
+        if(m.get("format")!=null) format = (String)m.get("format");
         if(m.get("balance")!=null) super.balance = new BTC((Double)m.get("balance"));
         if(m.get("unconfirmed_balance")!=null) super.unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance"));
         if(m.get("immature_balance")!=null) super.immatureBalance = new BTC((Double)m.get("immature_balance"));
