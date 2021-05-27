@@ -18,11 +18,18 @@ public class GetWalletInfo extends RPCRequest {
         path += "/wallet/"+walletName;
     }
 
+    public GetWalletInfo(String walletName) {
+        super(NAME);
+        this.walletName = walletName;
+        path += "/wallet/"+walletName;
+    }
+
     @Override
     public void fromMap(Map<String, Object> m) {
         // Response
         wallet = new BTCWallet();
         wallet.fromMap(m);
+        this.path = this.path + "/wallet/" + this.walletName;
     }
 
 }
