@@ -10,25 +10,22 @@ public class GetWalletInfo extends RPCRequest {
 
     public static final String NAME = "getwalletinfo";
 
-    public String walletName = "Default";
-
-    public BTCWallet wallet;
+    public BTCWallet wallet = new BTCWallet();
 
     public GetWalletInfo() {
         super(NAME);
-        path += "/wallet/"+walletName;
+        path += "/wallet/Default";
     }
 
     public GetWalletInfo(String walletName) {
         super(NAME);
-        this.walletName = walletName;
+        this.wallet.setName(walletName);
         path += "/wallet/"+walletName;
     }
 
     @Override
     public void fromMap(Map<String, Object> m) {
         // Response
-        wallet = new BTCWallet();
         wallet.fromMap(m);
         if(wallet.getName()!=null) {
             path = path.substring(0,path.lastIndexOf("/")+1);

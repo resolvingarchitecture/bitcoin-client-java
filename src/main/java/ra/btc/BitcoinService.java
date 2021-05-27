@@ -178,11 +178,13 @@ public class BitcoinService extends BaseService {
         }
         request.id = e.getId();
         requests.put(request.id, request);
+        String json = request.toJSON();
+        LOG.info("RPC Request: "+json);
         e.setURL(new URL(BitcoinService.rpcUrl, request.path));
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
         e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
-        e.addContent(request.toJSON());
+        e.addContent(json);
         e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
         e.addExternalRoute("ra.http.HTTPService", "SEND");
         send(e);

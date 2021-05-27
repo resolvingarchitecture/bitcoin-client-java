@@ -41,8 +41,9 @@ public class LoadWallet extends RPCRequest {
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        name = (String)m.get("name");
-        warning = (String)m.get("warning");
+        if(m.get("walletname")!=null) walletName = (String)m.get("walletname");
+        if(m.get("name")!=null) walletName = (String)m.get("name");
+        if(m.get("warning")!=null) warning = (String)m.get("warning");
     }
 
 }
