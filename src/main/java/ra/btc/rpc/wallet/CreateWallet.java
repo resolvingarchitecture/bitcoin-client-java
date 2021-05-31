@@ -22,7 +22,6 @@ public class CreateWallet extends RPCRequest {
     public Boolean loadOnStartup = null; // Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged.
 
     // Response
-    public String name;
     public String warning;
 
     public CreateWallet() {
@@ -49,7 +48,15 @@ public class CreateWallet extends RPCRequest {
 
     @Override
     public Map<String, Object> toMap() {
+        Map<String,Object> m = super.toMap();
         // Request
+        m.put("walletName", walletName);
+        m.put("disablePrivateKeys", disablePrivateKeys.toString());
+        m.put("blank", blank.toString());
+        m.put("avoidReuse", avoidReuse.toString());
+        m.put("descriptors", descriptors.toString());
+        m.put("loadOnStartup", loadOnStartup.toString());
+        m.put("warning", warning);
         params.add(walletName);
         params.add(disablePrivateKeys);
         params.add(blank);
@@ -57,12 +64,17 @@ public class CreateWallet extends RPCRequest {
         params.add(avoidReuse);
         params.add(descriptors);
         params.add(loadOnStartup);
-        return super.toMap();
+        return m;
     }
 
     @Override
     public void fromMap(Map<String, Object> m) {
-        name = (String)m.get("name");
-        warning = (String)m.get("warning");
+        if(m.get("walletName")!=null) walletName = (String)m.get("walletName");
+        if(m.get("disablePrivateKeys")!=null) disablePrivateKeys = Boolean.parseBoolean((String)m.get("disablePrivateKeys"));
+        if(m.get("blank")!=null) blank = Boolean.parseBoolean((String)m.get("blank"));
+        if(m.get("avoidReuse")!=null) avoidReuse = Boolean.parseBoolean((String)m.get("avoidReuse"));
+        if(m.get("descriptors")!=null) descriptors = Boolean.parseBoolean((String)m.get("descriptors"));
+        if(m.get("loadOnStartup")!=null) loadOnStartup = Boolean.parseBoolean((String)m.get("loadOnStartup"));
+        if(m.get("warning")!=null) warning = (String)m.get("warning");
     }
 }

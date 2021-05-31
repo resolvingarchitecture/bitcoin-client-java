@@ -209,7 +209,7 @@ public class BitcoinService extends BaseService {
         if(response.error!=null) {
             LOG.warning(response.error.toString());
         } else {
-            switch (request.name) {
+            switch (request.method) {
                 // TODO: Refactor out switch by passing fully qualified class name and using reflection to create instance then map
                 case GetBlockchainInfo.NAME: {
                     GetBlockchainInfo gbi = (GetBlockchainInfo) request;

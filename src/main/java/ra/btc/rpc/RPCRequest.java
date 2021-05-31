@@ -18,13 +18,14 @@ public abstract class RPCRequest implements JSONSerializable {
     public final String clazz = this.getClass().getName();
 
     public String jsonrpc = "1.0";
-    public String name;
+    public String method;
     public String path = "";
     public String id;
+    public String error;
     public List<Object> params = new ArrayList<>();
 
-    protected RPCRequest(String name) {
-        this.name = name;
+    protected RPCRequest(String method) {
+        this.method = method;
     }
 
     public static RPCRequest inflate(Map<String,Object> m) throws
@@ -44,7 +45,8 @@ public abstract class RPCRequest implements JSONSerializable {
         // Request
         Map<String,Object> m = new HashMap<>();
         m.put("clazz", clazz);
-        m.put("method", name);
+        m.put("method", method);
+        m.put("path", path);
         if(jsonrpc!=null) m.put("jsonrpc", jsonrpc);
         if(id!=null) m.put("id", id);
         if(params!=null) m.put("params", params);
@@ -54,7 +56,9 @@ public abstract class RPCRequest implements JSONSerializable {
     @Override
     public void fromMap(Map<String, Object> m) {
         if(m.get("id")!=null) id = (String)m.get("id");
-        if(m.get("method")!=null) name = (String)m.get("method");
+        if(m.get("error")!=null) error = (String)m.get("error");
+        if(m.get("method")!=null) method = (String)m.get("method");
+        if(m.get("path")!=null) path = (String)m.get("path");
         if(m.get("jsonrpc")!=null) jsonrpc = (String)m.get("jsonrpc");
         if(m.get("params")!=null) params = (List<Object>)m.get("params");
     }

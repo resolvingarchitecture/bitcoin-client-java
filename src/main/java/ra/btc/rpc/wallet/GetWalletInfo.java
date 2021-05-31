@@ -2,6 +2,7 @@ package ra.btc.rpc.wallet;
 
 import ra.btc.BTCWallet;
 import ra.btc.rpc.RPCRequest;
+import ra.util.JSONParser;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,9 +26,14 @@ public class GetWalletInfo extends RPCRequest {
 
     @Override
     public void fromMap(Map<String, Object> m) {
+        super.fromMap(m);
         // Response
-        wallet.fromMap(m);
-        if(wallet.getName()!=null) {
+        if(m.get("result")!=null) {
+            wallet.fromMap((Map<String, Object>) m.get("result"));
+        }
+        if(m.get("path")!=null)
+            path = (String)m.get("path");
+        else if(wallet.getName()!=null) {
             path = path.substring(0,path.lastIndexOf("/")+1);
             path += wallet.getName();
         }

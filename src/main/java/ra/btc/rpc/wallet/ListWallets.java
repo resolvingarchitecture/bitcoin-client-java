@@ -16,9 +16,8 @@ public class ListWallets extends RPCRequest {
 
     @Override
     public void fromMap(Map<String, Object> m) {
+        super.fromMap(m);
         // Response
-        if(m.size()>0) {
-            wallets = (List<String>)m.get(0);
-        }
+        if(m.get("result")!=null) wallets = (List<String>)m.get("result");
     }
 }
