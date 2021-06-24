@@ -9,7 +9,7 @@ public class LoadWallet extends RPCRequest {
     public static final String NAME = "loadwallet";
 
     // Request
-    public String walletName = "Default";
+    public String walletName = "";
     public Boolean loadOnStartup = null;
 
     // Response

@@ -15,7 +15,7 @@ public class GetWalletInfo extends RPCRequest {
 
     public GetWalletInfo() {
         super(NAME);
-        path += "/wallet/Default";
+        path += "/wallet/";
     }
 
     public GetWalletInfo(String walletName) {

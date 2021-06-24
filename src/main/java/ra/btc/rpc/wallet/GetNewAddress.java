@@ -9,52 +9,86 @@ public class GetNewAddress extends RPCRequest {
 
     public static final String NAME = "getnewaddress";
 
-    public String walletName = "Default";
+    private String walletName;
 
     // Request
-    public String label;
-    public AddressType addressType;
+    private String label;
+    private AddressType addressType;
 
     // Response
-    public String address;
+    private String address;
 
     public GetNewAddress() {
         super(NAME);
+        this.walletName = "";
+        this.label = "";
+        this.addressType = AddressType.BECH32;
+        path += "/wallet/";
+    }
+
+    public GetNewAddress(String walletName) {
+        super(NAME);
+        this.walletName = walletName;
+        this.label = "";
+        this.addressType = AddressType.BECH32;
         path += "/wallet/"+walletName;
     }
 
-    public GetNewAddress(String label) {
+    public GetNewAddress(String walletName, String label, AddressType addressType) {
         super(NAME);
+        this.walletName = walletName;
+        this.label = label;
+        this.addressType = addressType;
         path += "/wallet/"+walletName;
+    }
+
+    public String getWalletName() {
+        return walletName;
+    }
+
+    public void setWalletName(String walletName) {
+        this.walletName = walletName;
+        path = "/wallet/"+walletName;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
         this.label = label;
     }
 
-    public GetNewAddress(AddressType addressType) {
-        super(NAME);
-        path += "/wallet/"+walletName;
+    public AddressType getAddressType() {
+        return addressType;
+    }
+
+    public void setAddressType(AddressType addressType) {
         this.addressType = addressType;
     }
 
-    public GetNewAddress(String label, AddressType addressType) {
-        super(NAME);
-        path += "/wallet/"+walletName;
-        this.label = label;
-        this.addressType = addressType;
+    public String getAddress() {
+        return address;
     }
 
     @Override
     public Map<String, Object> toMap() {
         // Request
-        if(label!=null) params.add(label);
-        if(addressType!=null) {
-            params.add(addressType.name());
-        }
-        return super.toMap();
+        params.add(label);
+        params.add(addressType.toString());
+        Map<String,Object> m = super.toMap();
+        m.put("label", label);
+        m.put("addressType", addressType.name());
+        return m;
     }
 
     @Override
     public void fromMap(Map<String, Object> m) {
         // Response
-        address = (String)m.get("str");
+        super.fromMap(m);
+        if(m.get("label")!=null) label = (String)m.get("label");
+        if(m.get("addressType")!=null) addressType = AddressType.valueOf((String)m.get("addressType"));
+        if(m.get("str")!=null) address = (String)m.get("str");
+        if(m.get("result")!=null) address = (String)m.get("result");
     }
 }
