@@ -96,7 +96,10 @@ public class BitcoinService extends BaseService {
     private final BlockchainInfo info = new BlockchainInfo();
     private final List<BitcoinPeer> peers = new ArrayList<>();
 
-    private final Map<String, Envelope> hold = new HashMap<>();
+    // holds RPCRequests for simple correlation of RPCResponses
+    private final Map<String, RPCRequest> clientRequestHold = new HashMap<>();
+    // holds internal RPCRequests that are required to fulfill external RPCRequests, e.g. need to ensure a wallet is loaded prior to checking its balance
+    private final Map<String, RPCRequest> internalRequestHold = new HashMap<>();
 
     public BitcoinService() {
     }
@@ -116,12 +119,15 @@ public class BitcoinService extends BaseService {
                 if(request instanceof GetWalletInfo) {
                     // Need to ensure Wallet is loaded first; hold GetWalletInfo
                     GetWalletInfo getWalletInfo = (GetWalletInfo) request;
+                    clientRequestHold.put(request.id, getWalletInfo);
                     LoadWallet loadWallet = new LoadWallet();
+                    loadWallet.id = getWalletInfo.id;
+                    internalRequestHold.put(loadWallet.id, loadWallet);
                     if (getWalletInfo.wallet.getName() != null) {
                         loadWallet.walletName = getWalletInfo.wallet.getName();
                     }
                     try {
-                        sendCorrelatedRequest(loadWallet, e.getId());
+                        sendRequest(loadWallet);
                     } catch (MalformedURLException malformedURLException) {
                         LOG.warning(malformedURLException.getLocalizedMessage());
                     }
@@ -141,36 +147,21 @@ public class BitcoinService extends BaseService {
                     break;
                 }
                 RPCResponse response = new RPCResponse();
-                String result = null;
-                if(obj instanceof String) {
-                    result = (String)obj;
-                } else if(obj instanceof byte[]) {
-                    result = new String((byte[]) obj);
-                } else {
-                    LOG.warning("Unsupported response type.");
-                    return;
-                }
-                LOG.info("BTC RPC Response: "+result);
-                response.fromJSON(result);
-                Envelope eOnHold = hold.get(e.getId());
-                if(eOnHold!=null) {
-                    RPCRequest request = extractRequest(eOnHold);
-                    request.fromJSON(result);
-                    updateInfo(request, response);
-                    hold.remove(e.getId());
-                    e.addNVP(RPCCommand.RESPONSE, response);
-                    if(e.getValue("correlation")!=null) {
-                        Envelope corrEnv = hold.get((String)e.getValue("correlation"));
-                        if(corrEnv!=null) {
-                            RPCRequest continuedRequest = extractRequest(corrEnv);
-                            try {
-                                sendRequest(continuedRequest);
-                            } catch (MalformedURLException malformedURLException) {
-                                LOG.warning(malformedURLException.getLocalizedMessage());
-                            }
-                            hold.remove((String)e.getValue("correlation"));
-                        }
+                String responseStr = new String((byte[]) obj);
+                LOG.info("BTC RPC Response: "+responseStr);
+                response.fromJSON(responseStr);
+                RPCRequest clientRequest = clientRequestHold.get(response.id);
+                RPCRequest internalRequest = internalRequestHold.get(response.id);
+                if(internalRequest!=null && clientRequest!=null) {
+                    try {
+                        sendRequest(clientRequest);
+                    } catch (MalformedURLException malformedURLException) {
+                        LOG.warning(malformedURLException.getLocalizedMessage());
                     }
+                } else if(clientRequest!=null) {
+                    e.addNVP(RPCCommand.RESPONSE, response);
+                    clientRequestHold.remove(response.id);
+                    // unwind
                 }
                 break;
             }
@@ -186,12 +177,9 @@ public class BitcoinService extends BaseService {
         }
     }
 
-    private boolean sendCorrelatedRequest(RPCRequest request, String correlationId) throws MalformedURLException {
+    private boolean sendRequest(RPCRequest request) throws MalformedURLException {
         Envelope e = Envelope.documentFactory();
         e.addNVP(RPCCommand.NAME, request);
-        hold.put(e.getId(), e);
-        if(correlationId!=null)
-            e.addNVP("correlation", correlationId);
         e.setURL(new URL(BitcoinService.rpcUrl, request.path));
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
@@ -202,10 +190,6 @@ public class BitcoinService extends BaseService {
         e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
         e.addExternalRoute("ra.http.HTTPService", "SEND");
         return send(e);
-    }
-
-    private boolean sendRequest(RPCRequest request) throws MalformedURLException {
-        return sendCorrelatedRequest(request, null);
     }
 
     private RPCRequest extractRequest(Envelope e) {

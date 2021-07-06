@@ -5,10 +5,7 @@ import ra.util.JSONParser;
 import ra.util.JSONPretty;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 public abstract class RPCRequest implements JSONSerializable {
@@ -20,7 +17,7 @@ public abstract class RPCRequest implements JSONSerializable {
     public String jsonrpc = "1.0";
     public String method;
     public String path = "";
-    public String id;
+    public String id = UUID.randomUUID().toString();
     public String error;
     public List<Object> params = new ArrayList<>();
 
