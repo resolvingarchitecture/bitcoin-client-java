@@ -116,24 +116,25 @@ public class BitcoinService extends BaseService {
             case OPERATION_RPC_REQUEST: {
                 RPCRequest request = extractRequest(e);
                 if(request==null) return;
+                String corrId = UUID.randomUUID().toString();
+                e.addNVP(BitcoinService.class.getName()+".corrId", corrId);
+                clientRequestHold.put(corrId, request);
                 if(request instanceof GetWalletInfo) {
                     // Need to ensure Wallet is loaded first; hold GetWalletInfo
                     GetWalletInfo getWalletInfo = (GetWalletInfo) request;
-                    clientRequestHold.put(request.id, getWalletInfo);
                     LoadWallet loadWallet = new LoadWallet();
-                    loadWallet.id = getWalletInfo.id;
-                    internalRequestHold.put(loadWallet.id, loadWallet);
+                    internalRequestHold.put(corrId, loadWallet);
                     if (getWalletInfo.wallet.getName() != null) {
                         loadWallet.walletName = getWalletInfo.wallet.getName();
                     }
                     try {
-                        sendRequest(loadWallet);
+                        sendRequest(e, loadWallet);
                     } catch (MalformedURLException malformedURLException) {
                         LOG.warning(malformedURLException.getLocalizedMessage());
                     }
                 } else {
                     try {
-                        sendRequest(request);
+                        sendRequest(e, request);
                     } catch (MalformedURLException malformedURLException) {
                         LOG.warning(malformedURLException.getLocalizedMessage());
                     }
@@ -141,6 +142,12 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case OPERATION_RPC_RESPONSE: {
+                List<String> errors = e.getMessage().getErrorMessages();
+                if(errors!=null && !errors.isEmpty()) {
+                    for(String error : errors) {
+
+                    }
+                }
                 Object obj = e.getContent();
                 if(obj==null) {
                     LOG.warning("No content in response.");
@@ -150,17 +157,21 @@ public class BitcoinService extends BaseService {
                 String responseStr = new String((byte[]) obj);
                 LOG.info("BTC RPC Response: "+responseStr);
                 response.fromJSON(responseStr);
-                RPCRequest clientRequest = clientRequestHold.get(response.id);
-                RPCRequest internalRequest = internalRequestHold.get(response.id);
-                if(internalRequest!=null && clientRequest!=null) {
+                String corrId = (String)e.getValue(BitcoinService.class.getName()+".corrId");
+                RPCRequest internalRequest = internalRequestHold.get(corrId);
+                if(internalRequest!=null) {
+                    RPCRequest clientRequest = clientRequestHold.get(corrId);
                     try {
-                        sendRequest(clientRequest);
+                        sendRequest(e, clientRequest);
+                        internalRequestHold.remove(corrId);
                     } catch (MalformedURLException malformedURLException) {
                         LOG.warning(malformedURLException.getLocalizedMessage());
+                        clientRequestHold.remove(corrId);
+                        internalRequestHold.remove(corrId);
                     }
-                } else if(clientRequest!=null) {
-                    e.addNVP(RPCCommand.RESPONSE, response);
-                    clientRequestHold.remove(response.id);
+                } else {
+                    e.addNVP(RPCCommand.RESPONSE, response.toMap());
+                    clientRequestHold.remove(corrId);
                     // unwind
                 }
                 break;
@@ -177,14 +188,13 @@ public class BitcoinService extends BaseService {
         }
     }
 
-    private boolean sendRequest(RPCRequest request) throws MalformedURLException {
-        Envelope e = Envelope.documentFactory();
-        e.addNVP(RPCCommand.NAME, request);
+    private boolean sendRequest(Envelope e, RPCRequest request) throws MalformedURLException {
+        String json = request.toJSON();
+        e.addNVP(RPCCommand.NAME, json);
         e.setURL(new URL(BitcoinService.rpcUrl, request.path));
         e.setAction(Envelope.Action.POST);
         e.setHeader(Envelope.HEADER_AUTHORIZATION, BitcoinService.AUTHN);
         e.setHeader(Envelope.HEADER_CONTENT_TYPE, Envelope.HEADER_CONTENT_TYPE_JSON);
-        String json = request.toJSON();
         LOG.info("Sending to BTC Node: "+json);
         e.addContent(json);
         e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
