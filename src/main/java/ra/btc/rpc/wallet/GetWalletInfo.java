@@ -20,8 +20,12 @@ public class GetWalletInfo extends RPCRequest {
 
     public GetWalletInfo(String walletName) {
         super(NAME);
-        this.wallet.setName(walletName);
-        path += "/wallet/"+walletName;
+        if(walletName!=null && !walletName.isEmpty() && !"Default".equals(walletName)) {
+            this.wallet.setName(walletName);
+            path += "/wallet/" + walletName;
+        } else {
+            path += "/wallet/";
+        }
     }
 
     @Override

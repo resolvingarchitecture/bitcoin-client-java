@@ -142,25 +142,23 @@ public class BitcoinService extends BaseService {
                 break;
             }
             case OPERATION_RPC_RESPONSE: {
-                List<String> errors = e.getMessage().getErrorMessages();
-                if(errors!=null && !errors.isEmpty()) {
-                    for(String error : errors) {
-
-                    }
-                }
                 Object obj = e.getContent();
-                if(obj==null) {
-                    LOG.warning("No content in response.");
-                    break;
-                }
-                RPCResponse response = new RPCResponse();
                 String responseStr = new String((byte[]) obj);
-                LOG.info("BTC RPC Response: "+responseStr);
+                LOG.info("BTC RPC Response: " + responseStr);
+                RPCResponse response = new RPCResponse();
                 response.fromJSON(responseStr);
-                String corrId = (String)e.getValue(BitcoinService.class.getName()+".corrId");
+                String corrId = (String) e.getValue(BitcoinService.class.getName() + ".corrId");
                 RPCRequest internalRequest = internalRequestHold.get(corrId);
-                if(internalRequest!=null) {
+                if (internalRequest != null) {
                     RPCRequest clientRequest = clientRequestHold.get(corrId);
+                    if(response.error != null && clientRequest instanceof GetWalletInfo && internalRequest instanceof LoadWallet) {
+                        if(response.error.code != -4) {
+                            LOG.warning(response.error.message);
+                            clientRequestHold.remove(corrId);
+                            internalRequestHold.remove(corrId);
+                            break;
+                        }
+                    }
                     try {
                         sendRequest(e, clientRequest);
                         internalRequestHold.remove(corrId);
@@ -170,6 +168,7 @@ public class BitcoinService extends BaseService {
                         internalRequestHold.remove(corrId);
                     }
                 } else {
+
                     e.addNVP(RPCCommand.RESPONSE, response.toMap());
                     clientRequestHold.remove(corrId);
                     // unwind
@@ -184,7 +183,8 @@ public class BitcoinService extends BaseService {
                 ExchangeForBTC cmd = new ExchangeForBTC();
 
             }
-            default: deadLetter(e); // Operation not supported
+            default:
+                deadLetter(e); // Operation not supported
         }
     }
 
