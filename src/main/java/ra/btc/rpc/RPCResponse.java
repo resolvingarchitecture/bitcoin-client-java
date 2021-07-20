@@ -26,10 +26,20 @@ public class RPCResponse implements JSONSerializable {
     public void fromMap(Map<String, Object> m) {
         if(m.get("id")!=null) id = (String)m.get("id");
         if(m.get("error")!=null) {
-            Map<String,Object> errorMap = (Map<String,Object>)m.get("error");
             error = new RPCError();
-            error.code = (Integer)errorMap.get("code");
-            error.message = (String)errorMap.get("message");
+            Map<String,Object> errorMap = null;
+            if(m.get("error") instanceof String) {
+                errorMap = (Map<String,Object>)JSONParser.parse((String)m.get("error"));
+            } else if(m.get("error") instanceof Map) {
+                errorMap = (Map<String, Object>) m.get("error");
+            }
+            if(errorMap==null) {
+                error.code = 500;
+                error.message = "Unable to parse error.";
+            } else {
+                error.code = Integer.parseInt((String)errorMap.get("code"));
+                error.message = (String)errorMap.get("message");
+            }
         }
         if(m.get("result")!=null) {
            result = m.get("result");
