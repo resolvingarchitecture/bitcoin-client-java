@@ -168,7 +168,7 @@ public class BitcoinService extends BaseService {
                         internalRequestHold.remove(corrId);
                     }
                 } else {
-
+//                    e.addNVP(RPCCommand.RESPONSE, JSONParser.toString(response.toMap()));
                     e.addNVP(RPCCommand.RESPONSE, response.toMap());
                     clientRequestHold.remove(corrId);
                     // unwind

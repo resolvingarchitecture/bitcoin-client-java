@@ -1,6 +1,5 @@
 package ra.btc.rpc.wallet;
 
-import ra.btc.AddressType;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.List;
@@ -14,7 +13,7 @@ public class AddMultisigAddress extends RPCRequest {
     public Integer nRequired; // Required
     public List<String> keys; // Required
     public String label; // Optional
-    public AddressType addressType; // Optional
+    public String addressType; // Optional
 
     // Response
     public String multisigAddress;
@@ -28,7 +27,7 @@ public class AddMultisigAddress extends RPCRequest {
      * @param keys A json array of bitcoin addresses or hex-encoded public keys
      * @param addressType The address type to use. Options are “legacy”, “p2sh-segwit”, and “bech32”.
      */
-    public AddMultisigAddress(Integer nRequired, List<String> keys, AddressType addressType) {
+    public AddMultisigAddress(Integer nRequired, List<String> keys, String addressType) {
         super(NAME);
         this.nRequired = nRequired;
         this.keys = keys;

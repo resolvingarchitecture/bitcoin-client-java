@@ -1,6 +1,5 @@
 package ra.btc.rpc.wallet;
 
-import ra.btc.AddressType;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;
@@ -13,7 +12,7 @@ public class GetNewAddress extends RPCRequest {
 
     // Request
     private String label;
-    private AddressType addressType;
+    private String addressType;
 
     // Response
     private String address;
@@ -34,7 +33,7 @@ public class GetNewAddress extends RPCRequest {
         path += "/wallet/"+walletName;
     }
 
-    public GetNewAddress(String walletName, String label, AddressType addressType) {
+    public GetNewAddress(String walletName, String label, String addressType) {
         super(NAME);
         this.walletName = walletName;
         this.label = label;
@@ -59,11 +58,11 @@ public class GetNewAddress extends RPCRequest {
         this.label = label;
     }
 
-    public AddressType getAddressType() {
+    public String getAddressType() {
         return addressType;
     }
 
-    public void setAddressType(AddressType addressType) {
+    public void setAddressType(String addressType) {
         this.addressType = addressType;
     }
 
@@ -74,12 +73,11 @@ public class GetNewAddress extends RPCRequest {
     @Override
     public Map<String, Object> toMap() {
         // Request
-        params.add(label);
-        params.add(addressType.toString());
-        Map<String,Object> m = super.toMap();
-        m.put("label", label);
-        m.put("addressType", addressType.name());
-        return m;
+        if(params.size()==0) {
+            params.add(label);
+            params.add(addressType);
+        }
+        return super.toMap();
     }
 
     @Override
@@ -87,7 +85,7 @@ public class GetNewAddress extends RPCRequest {
         // Response
         super.fromMap(m);
         if(m.get("label")!=null) label = (String)m.get("label");
-        if(m.get("addressType")!=null) addressType = AddressType.valueOf((String)m.get("addressType"));
+        if(m.get("addressType")!=null) addressType = (String)m.get("addressType");
         if(m.get("str")!=null) address = (String)m.get("str");
         if(m.get("result")!=null) address = (String)m.get("result");
     }
