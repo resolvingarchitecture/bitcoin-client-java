@@ -74,7 +74,6 @@ public class BitcoinService extends BaseService {
     public static final String OPERATION_CREATE_ESCROW = "CREATE_ESCROW";
     public static final String OPERATION_CLOSE_ESCROW = "CLOSE_ESCROW";
     // ** Buy/Sell BTC **
-    public static final String OPERATION_SEND_BTC = "SEND_BTC";
     public static final String OPERATION_MAKE_BTC_BUY_OFFER = "MAKE_BTC_BUY_OFFER";
     public static final String OPERATION_TAKE_BTC_BUY_OFFER = "TAKE_BTC_BUY_OFFER";
     public static final String OPERATION_MAKE_BTC_SELL_OFFER = "MAKE_BTC_SELL_OFFER";
@@ -174,10 +173,6 @@ public class BitcoinService extends BaseService {
                     // unwind
                 }
                 break;
-            }
-            case OPERATION_SEND_BTC: {
-                SendBTC sendBTC = new SendBTC();
-
             }
             case OPERATION_EXCHANGE_FOR_BTC: {
                 ExchangeForBTC cmd = new ExchangeForBTC();

@@ -16,7 +16,7 @@ public class GetBalance extends RPCRequest {
 
     public static final String NAME = "getbalance";
 
-    public String walletName = "Default";
+    public String walletName = "";
 
     // Request
     public String dummy = "*";
