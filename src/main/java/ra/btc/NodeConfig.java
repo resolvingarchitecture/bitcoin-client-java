@@ -56,14 +56,4 @@ public class NodeConfig {
 
         return true;
     }
-
-    public static void main(String[] args) {
-        NodeConfig cfg = new NodeConfig();
-        try {
-            cfg.load("/home/objectorange/snap/bitcoin-core/common/.bitcoin/");
-        } catch (IOException e) {
-            LOG.warning(e.getLocalizedMessage());
-        }
-        LOG.info("Ended.");
-    }
 }

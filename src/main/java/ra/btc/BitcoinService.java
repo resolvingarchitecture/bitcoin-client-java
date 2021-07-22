@@ -10,10 +10,7 @@ import ra.btc.rpc.mining.GetNetworkHashPS;
 import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
 import ra.btc.rpc.util.EstimateSmartFee;
-import ra.btc.rpc.wallet.GetBalance;
-import ra.btc.rpc.wallet.GetWalletInfo;
-import ra.btc.rpc.wallet.ListWallets;
-import ra.btc.rpc.wallet.LoadWallet;
+import ra.btc.rpc.wallet.*;
 import ra.btc.uses.ExchangeForBTC;
 import ra.btc.uses.SendBTC;
 import ra.common.Client;
@@ -147,9 +144,12 @@ public class BitcoinService extends BaseService {
                 RPCResponse response = new RPCResponse();
                 response.fromJSON(responseStr);
                 String corrId = (String) e.getValue(BitcoinService.class.getName() + ".corrId");
+                RPCRequest clientRequest = clientRequestHold.get(corrId);
                 RPCRequest internalRequest = internalRequestHold.get(corrId);
+                if(response.error!=null) {
+                    handleError(clientRequest, response);
+                }
                 if (internalRequest != null) {
-                    RPCRequest clientRequest = clientRequestHold.get(corrId);
                     if(response.error != null && clientRequest instanceof GetWalletInfo && internalRequest instanceof LoadWallet) {
                         if(response.error.code != -4) {
                             LOG.warning(response.error.message);
@@ -195,6 +195,15 @@ public class BitcoinService extends BaseService {
         e.addRoute(BitcoinService.class.getName(), OPERATION_RPC_RESPONSE);
         e.addExternalRoute("ra.http.HTTPService", "SEND");
         return send(e);
+    }
+
+    private void handleError(RPCRequest request, RPCResponse response) {
+        LOG.warning(response.error.code+":"+response.error.message);
+        if(request instanceof SendToAddress) {
+            if(response.error.code == -6) { // Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.
+
+            }
+        }
     }
 
     private RPCRequest extractRequest(Envelope e) {
