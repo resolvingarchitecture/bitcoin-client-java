@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Transaction implements JSONSerializable {
+    boolean inActiveChain;
     public String txid;
     public String hash;
     public Integer size;
@@ -29,6 +30,7 @@ public class Transaction implements JSONSerializable {
     @Override
     public void fromMap(Map<String, Object> m) {
         if(m.size() > 0) {
+            inActiveChain = (Boolean)m.get("in_active_chain");
             txid = (String)m.get("txid");
             hash = (String)m.get("hash");
             size = (Integer)m.get("size");
