@@ -16,6 +16,10 @@ public class Transaction implements JSONSerializable {
     public Integer locktime;
     public List<TXI> vIn;
     public List<UTXO> vOut;
+    public String blockhash;
+    public Integer confirmations;
+    public Long blocktime;
+    public Long time;
 
     @Override
     public Map<String, Object> toMap() {
@@ -62,6 +66,10 @@ public class Transaction implements JSONSerializable {
                 utxo.scriptPubKey.type = ScriptPublicKey.Type.valueOf((String)vOutSPK.get("type"));
                 utxo.scriptPubKey.addresses = (List<String>)vOutSPK.get("addresses");
             }
+            blockhash = (String)m.get("blockhash");
+            confirmations = (Integer)m.get("confirmations");
+            blocktime = (Long)m.get("blocktime");
+            time = (Long)m.get("time");
         }
     }
 
