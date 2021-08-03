@@ -302,6 +302,10 @@ public class BitcoinService extends BaseService {
                     LOG.info("Balance: " + gb.amount);
                     break;
                 }
+                case ImportPrivKey.NAME: {
+                    // TODO: Perform wallet backup after importing private key
+
+                }
             }
         }
     }
