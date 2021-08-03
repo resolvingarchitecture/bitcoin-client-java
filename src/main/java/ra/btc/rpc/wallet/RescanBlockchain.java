@@ -6,6 +6,8 @@ import java.util.Map;
 
 /**
  * Rescan the local blockchain for wallet related transactions.
+ *
+ * Note: Use “getwalletinfo” to query the scanning progress.
  */
 public class RescanBlockchain extends RPCRequest {
 
