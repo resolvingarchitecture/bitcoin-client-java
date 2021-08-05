@@ -39,7 +39,7 @@ import ra.common.Envelope;
  *  1.
  *
  */
-public class ExchangeForBTC {
+public class ExchangeForBTC extends UseRequestBase {
     public void initiate(Envelope e) {}
     public void buyBTCAsTaker() {}
     public void buyBTCAsMaker() {}
