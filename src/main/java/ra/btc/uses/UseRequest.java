@@ -1,4 +1,6 @@
 package ra.btc.uses;
 
-public interface UseRequest {
+import ra.common.JSONSerializable;
+
+public interface UseRequest extends JSONSerializable {
 }
