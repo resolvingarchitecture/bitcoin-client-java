@@ -1,6 +1,6 @@
 package ra.btc.uses;
 
-public enum ExchangeMethod {
+public enum FiatExchangeMethod {
     F2F,
     InteracETransfer,
     SEPA_FI, // Finland
