@@ -1,5 +1,7 @@
 package ra.btc.uses;
 
+import ra.btc.rpc.RPCRequest;
+import ra.btc.rpc.RPCResponse;
 import ra.common.currency.crypto.BTC;
 
 import java.util.Map;
@@ -15,6 +17,21 @@ public class SendBTC extends UseRequestBase {
     public BTC receiverAmount;
     public BTC estimatedMinerFee;
     public BTC devFee;
+
+    @Override
+    public Boolean additionalRequests() {
+        return null;
+    }
+
+    @Override
+    public RPCRequest nextRequest() {
+        return null;
+    }
+
+    @Override
+    public void handleResponse(RPCRequest request, RPCResponse response) {
+
+    }
 
     @Override
     public Map<String, Object> toMap() {

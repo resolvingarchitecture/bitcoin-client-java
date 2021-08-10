@@ -1,5 +1,7 @@
 package ra.btc.uses;
 
+import ra.btc.rpc.RPCRequest;
+import ra.btc.rpc.RPCResponse;
 import ra.common.Envelope;
 
 import java.util.Currency;
@@ -56,6 +58,21 @@ public class Exchange extends UseRequestBase {
     public Exchange() {}
 
     public Exchange(Currency fiat, long amountSats, ExchangeRequestType direction) {
+
+    }
+
+    @Override
+    public Boolean additionalRequests() {
+        return null;
+    }
+
+    @Override
+    public RPCRequest nextRequest() {
+        return null;
+    }
+
+    @Override
+    public void handleResponse(RPCRequest request, RPCResponse response) {
 
     }
 
