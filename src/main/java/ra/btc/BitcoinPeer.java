@@ -1,6 +1,8 @@
 package ra.btc;
 
 import ra.common.JSONSerializable;
+import ra.util.JSONParser;
+import ra.util.JSONPretty;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,13 +25,11 @@ public class BitcoinPeer implements JSONSerializable {
 
     }
 
-    @Override
     public String toJSON() {
-        return null;
+        return JSONPretty.toPretty(JSONParser.toString(this.toMap()), 4);
     }
 
-    @Override
-    public void fromJSON(String s) {
-
+    public void fromJSON(String json) {
+        this.fromMap((Map)JSONParser.parse(json));
     }
 }
