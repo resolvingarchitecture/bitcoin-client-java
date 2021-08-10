@@ -13,7 +13,7 @@ public class ListTransactions extends RPCRequest {
 
     // Request
     public String label = "*";
-    public Integer count = 5;
+    public Integer count = 10;
     public Integer skip = 0;
 
     // Response
