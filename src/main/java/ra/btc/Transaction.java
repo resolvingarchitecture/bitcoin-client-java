@@ -383,7 +383,10 @@ public class Transaction implements JSONSerializable {
             if (m.get("comment") != null) comment = (String) m.get("comment");
             if (m.get("bip125-replaceable") != null) {
                 String bip125Replaceable = (String) m.get("bip125-replaceable");
-                supportsReplaceByFee = bip125Replaceable.equals("yes") ? true : bip125Replaceable.equals("no") ? false : null;
+                if(bip125Replaceable.equals("yes"))
+                    supportsReplaceByFee = true;
+                else
+                    supportsReplaceByFee = false;
             }
             if (m.get("abandoned") != null) abandoned = (Boolean) m.get("abandoned");
 
