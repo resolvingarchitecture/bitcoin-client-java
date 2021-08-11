@@ -97,6 +97,8 @@ public class BitcoinService extends BaseService {
     // holds internal RPCRequests that are required to fulfill external RPCRequests, e.g. need to ensure a wallet is loaded prior to checking its balance
     private final Map<String, RPCRequest> internalRequestHold = new HashMap<>();
 
+    private byte mode = 0; // 0 = local, 1 = remote personal, 2 = random remote non-personal
+
     public BitcoinService() {
     }
 
@@ -328,6 +330,10 @@ public class BitcoinService extends BaseService {
         LOG.info("Loading properties...");
         try {
             config = Config.loadAll(p, "ra-btc.config");
+//            String modeParam = config.getProperty("ra.btc.mode");
+//            if(modeParam!=null) {
+//                mode = Byte.parseByte(modeParam);
+//            }
             String env = config.getProperty("1m5.env");
             if("test".equals(env))
                 rpcUrl = new URL(info.host+TEST_NET_PORT);
