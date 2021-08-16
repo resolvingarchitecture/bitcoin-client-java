@@ -1,6 +1,8 @@
 package ra.btc;
 
 import ra.common.JSONSerializable;
+import ra.common.network.Network;
+import ra.common.network.NetworkPeer;
 import ra.util.JSONParser;
 import ra.util.JSONPretty;
 
@@ -17,12 +19,18 @@ public class BitcoinPeer implements JSONSerializable {
 
     @Override
     public Map<String, Object> toMap() {
-        return null;
+        Map<String,Object> m = new HashMap<>();
+        if(addressOrName!=null) m.put("addressOrName", addressOrName);
+        if(connected!=null) m.put("connected", connected);
+        if(addresses!=null) m.put("addresses", addresses);
+        return m;
     }
 
     @Override
-    public void fromMap(Map<String, Object> map) {
-
+    public void fromMap(Map<String, Object> m) {
+        if(m.get("addressOrName")!=null) addressOrName = (String)m.get("addressOrName");
+        if(m.get("connected")!=null) connected = (Boolean)m.get("connected");
+        if(m.get("addresses")!=null) addresses = (Map<String,Connection>)m.get("addresses");
     }
 
     public String toJSON() {
