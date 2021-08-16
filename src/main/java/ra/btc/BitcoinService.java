@@ -400,36 +400,36 @@ public class BitcoinService extends BaseService {
         return true;
     }
 
-    public static void main(String[] args) {
-        BitcoinService service = new BitcoinService();
-        service.setProducer(new MessageProducer() {
-            @Override
-            public boolean send(Envelope envelope) {
-                return true;
-            }
-
-            @Override
-            public boolean send(Envelope envelope, Client client) {
-                return true;
-            }
-
-            @Override
-            public boolean deadLetter(Envelope envelope) {
-                return true;
-            }
-        });
-        Properties props = new Properties();
-        for(String arg : args) {
-            String[] nvp = arg.split("=");
-            props.put(nvp[0],nvp[1]);
-        }
-        if(service.start(props)) {
-            while(service.getServiceStatus() != ServiceStatus.SHUTDOWN) {
-                Wait.aSec(1);
-            }
-        } else {
-            System.exit(-1);
-        }
-    }
+//    public static void main(String[] args) {
+//        BitcoinService service = new BitcoinService();
+//        service.setProducer(new MessageProducer() {
+//            @Override
+//            public boolean send(Envelope envelope) {
+//                return true;
+//            }
+//
+//            @Override
+//            public boolean send(Envelope envelope, Client client) {
+//                return true;
+//            }
+//
+//            @Override
+//            public boolean deadLetter(Envelope envelope) {
+//                return true;
+//            }
+//        });
+//        Properties props = new Properties();
+//        for(String arg : args) {
+//            String[] nvp = arg.split("=");
+//            props.put(nvp[0],nvp[1]);
+//        }
+//        if(service.start(props)) {
+//            while(service.getServiceStatus() != ServiceStatus.SHUTDOWN) {
+//                Wait.aSec(1);
+//            }
+//        } else {
+//            System.exit(-1);
+//        }
+//    }
 
 }
