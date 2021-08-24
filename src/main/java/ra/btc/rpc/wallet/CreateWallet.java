@@ -1,7 +1,7 @@
 package ra.btc.rpc.wallet;
 
 import ra.btc.rpc.RPCRequest;
-import ra.util.RandomUtil;
+import ra.common.RandomUtil;
 
 import java.util.Map;
 
