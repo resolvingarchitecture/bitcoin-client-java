@@ -335,9 +335,9 @@ public class BitcoinService extends BaseService {
 //                mode = Byte.parseByte(modeParam);
 //            }
             String env = config.getProperty("1m5.env");
-            if("test".equals(env))
+            if("test".equalsIgnoreCase(env) || "qa".equalsIgnoreCase(env))
                 rpcUrl = new URL(info.host+TEST_NET_PORT);
-            else if("prod".equals(env)) {
+            else if("prod".equalsIgnoreCase(env)) {
                 rpcUrl = new URL(info.host+MAIN_NET_PORT);
             } else {
                 rpcUrl = new URL(info.host+REG_TEST_PORT);
