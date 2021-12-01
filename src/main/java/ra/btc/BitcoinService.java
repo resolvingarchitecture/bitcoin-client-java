@@ -10,7 +10,6 @@ import ra.btc.rpc.network.GetNetworkInfo;
 import ra.btc.rpc.network.GetPeerInfo;
 import ra.btc.rpc.wallet.*;
 import ra.btc.uses.UseRequest;
-import ra.common.Client;
 import ra.common.Envelope;
 import ra.common.messaging.MessageProducer;
 import ra.common.route.Route;
@@ -20,7 +19,6 @@ import ra.common.service.ServiceStatusObserver;
 import ra.common.Config;
 import ra.common.JSONParser;
 import ra.common.SystemSettings;
-import ra.common.Wait;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -98,6 +96,7 @@ public class BitcoinService extends BaseService {
     private final Map<String, RPCRequest> internalRequestHold = new HashMap<>();
 
     private byte mode = 0; // 0 = local, 1 = remote personal, 2 = random remote non-personal
+    private String currentWalletName = "";
 
     public BitcoinService() {
     }
@@ -118,21 +117,18 @@ public class BitcoinService extends BaseService {
                 e.addNVP(BitcoinService.class.getName()+".corrId", corrId);
                 clientRPCRequestHold.put(corrId, request);
                 if(request instanceof GetWalletInfo) {
-                    // Need to ensure Wallet is loaded first; hold GetWalletInfo
-                    GetWalletInfo getWalletInfo = (GetWalletInfo) request;
+                    // Need to ensure Wallet is loaded first
                     LoadWallet loadWallet = new LoadWallet();
                     internalRequestHold.put(corrId, loadWallet);
-                    if (getWalletInfo.wallet.getName() != null) {
-                        loadWallet.walletName = getWalletInfo.wallet.getName();
-                    }
+                    loadWallet.walletName = currentWalletName;
                     try {
-                        sendRPCRequest(e, loadWallet);
+                        forwardRequest(e, loadWallet);
                     } catch (MalformedURLException malformedURLException) {
                         LOG.warning(malformedURLException.getLocalizedMessage());
                     }
                 } else {
                     try {
-                        sendRPCRequest(e, request);
+                        forwardRequest(e, request);
                     } catch (MalformedURLException malformedURLException) {
                         LOG.warning(malformedURLException.getLocalizedMessage());
                     }
@@ -152,21 +148,31 @@ public class BitcoinService extends BaseService {
                     handleError(clientRequest, response);
                 }
                 if (internalRequest != null) {
-                    if(response.error != null && clientRequest instanceof GetWalletInfo && internalRequest instanceof LoadWallet) {
-                        if(response.error.code != -4) {
-                            LOG.warning(response.error.message);
+                    if(clientRequest instanceof GetWalletInfo && internalRequest instanceof LoadWallet) {
+                        if(response.error == null || response.error.code == -35) { // -35 = already loaded
                             clientRPCRequestHold.remove(corrId);
                             internalRequestHold.remove(corrId);
-                            break;
+                            try {
+                                forwardRequest(e, clientRequest);
+                                internalRequestHold.remove(corrId);
+                            } catch (MalformedURLException malformedURLException) {
+                                LOG.warning(malformedURLException.getLocalizedMessage());
+                                clientRPCRequestHold.remove(corrId);
+                                internalRequestHold.remove(corrId);
+                            }
+                            if(response.error != null) {
+                                if(response.error.code == -35) {
+                                    LOG.info(((LoadWallet)internalRequest).walletName+" wallet already loaded.");
+                                } else {
+                                    LOG.warning("LoadWallet error: " +response.error.message);
+                                }
+                            }
+                        } else if(response.error.code == -18) {
+                            LOG.warning("Wallet does not exist: "+((LoadWallet)internalRequest).walletName);
                         }
-                    }
-                    try {
-                        sendRPCRequest(e, clientRequest);
-                        internalRequestHold.remove(corrId);
-                    } catch (MalformedURLException malformedURLException) {
-                        LOG.warning(malformedURLException.getLocalizedMessage());
-                        clientRPCRequestHold.remove(corrId);
-                        internalRequestHold.remove(corrId);
+                    } else if(internalRequest instanceof ListWallets) {
+                        currentWalletName = (String)((List)response.result).get(0);
+                        LOG.info("Current Wallet assumed as first from ListWallets (for now): "+currentWalletName);
                     }
                 } else {
 //                    e.addNVP(RPCCommand.RESPONSE, JSONParser.toString(response.toMap()));
@@ -189,7 +195,15 @@ public class BitcoinService extends BaseService {
         }
     }
 
-    private boolean sendRPCRequest(Envelope e, RPCRequest request) throws MalformedURLException {
+    private boolean sendInternalRequest(RPCRequest request) throws MalformedURLException {
+        Envelope e = Envelope.documentFactory();
+        String corrId = UUID.randomUUID().toString();
+        e.addNVP(BitcoinService.class.getName()+".corrId", corrId);
+        internalRequestHold.put(corrId, request);
+        return forwardRequest(e, request);
+    }
+
+    private boolean forwardRequest(Envelope e, RPCRequest request) throws MalformedURLException {
         String json = request.toJSON();
         e.addNVP(RPCCommand.NAME, json);
         e.setURL(new URL(BitcoinService.rpcUrl, request.path));
@@ -204,7 +218,7 @@ public class BitcoinService extends BaseService {
     }
 
     private void handleError(RPCRequest request, RPCResponse response) {
-        LOG.warning(response.error.code+":"+response.error.message);
+//        LOG.warning(response.error.code+":"+response.error.message);
         if(request instanceof SendToAddress) {
             if(response.error.code == -6) { // Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.
 
@@ -355,23 +369,23 @@ public class BitcoinService extends BaseService {
             return false;
         }
         // Send to establish initial info
-//        try {
-//            sendRequest(new GetBlockchainInfo());
-//            sendRequest(new Uptime());
-//            sendRequest(new GetNetworkHashPS());
-//            sendRequest(new GetPeerInfo());
-//            sendRequest(new GetNetworkInfo());
-//            sendRequest(new GetBlockCount());
-//            sendRequest(new EstimateSmartFee(3));
-//            sendRequest(new ListWallets());
-//        } catch (Exception ex) {
-//            LOG.warning(ex.getLocalizedMessage());
-//            return false;
-//        }
+        try {
+//            sendInternalRequest(new GetBlockchainInfo());
+//            sendInternalRequest(new Uptime());
+//            sendInternalRequest(new GetNetworkHashPS());
+//            sendInternalRequest(new GetPeerInfo());
+//            sendInternalRequest(new GetNetworkInfo());
+//            sendInternalRequest(new GetBlockCount());
+//            sendInternalRequest(new EstimateSmartFee(3));
+            sendInternalRequest(new ListWallets());
+        } catch (Exception ex) {
+            LOG.warning(ex.getLocalizedMessage());
+            return false;
+        }
 
         // Tests
-//        sendRequest(new CreateWallet("TestWallet"));
-//        sendRequest(new GetNewAddress());
+//        sendInternalRequest(new CreateWallet("TestWallet"));
+//        sendInternalRequest(new GetNewAddress());
 
         updateStatus(ServiceStatus.RUNNING);
         LOG.info("Started.");
