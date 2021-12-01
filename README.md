@@ -23,22 +23,26 @@ It currently depends on the ra.http.HTTPService running as a client only (for lo
 
 [BitcoinJ](https://bitcoinj.org/) was evaluated to be embedded in the service. It creates a Bitcoin node implemented in Java
 on your machine and connects out using DNS (TCP), HTTP, and Tor on its own terms. This is undesirable with this Bitcoin Client
-as a service as we want to focus all communications through our own network services to minimize leakage while
-maintaining the ability to re-route failed routes via a Network Manager service while also supporting a full/pruned node
+as a service as this should be the integrator's choice while also supporting a full/pruned node
 locally without having to maintain the Java code in-sync with future Bitcoin work (what if BitcoinJ becomes stagnant).
-In addition, BitcoinJ adds a considerable amount of complexity requiring a great deal of dependency on its codebase and
-is tied to Google libraries and copyrighted by Google.
+In addition, BitcoinJ adds a considerable amount of complexity requiring a great deal of dependency on its codebase and as of 2020
+is tied to Google libraries copyrighted by Google.
 
 Bitcoin JSON-RPC interface is used for all communications to the local Bitcoin node.
 
 Local Bitcoin node can be a full node or a pruned node but when pruned, functionality will become limited.
 Open payment channels that will be dereferenced upon pruning will be lost due to de-referencing.
 It's recommended to keep the pruning to a minimal by supporting the largest bitcoin node size possible while minimizing how long payment channels are left open.
-Future versions of this component will provide auto closing of payments channels that would be affected by a prune.
+Future versions of this component will provide auto notifications of payments channels that would be affected by a prune when registered with this service.
 
 ## Configuration
-If your bitcoin node is not located in the following directory: /home/[username here]/snap/bitcoin-core/common/.bitcoin/
+* If your bitcoin node is not located in the following directory: /home/[username here]/snap/bitcoin-core/common/.bitcoin/
 then set the bitcoin home directory by passing it in as the parameter: ra.btc.directory
+* In bitcoin.conf, set the following:
+  * server=1
+  * rest=1
+  * rpcuser=ra
+  * rpcpassword=1234
 
 ## Implementation
 RPC operations implemented using the following API documentation: https://developer.bitcoin.org/reference/rpc/index.html
