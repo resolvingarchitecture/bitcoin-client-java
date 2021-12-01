@@ -222,8 +222,8 @@ public class BitcoinService extends BaseService {
     private void handleError(RPCRequest request, RPCResponse response) {
 //        LOG.warning(response.error.code+":"+response.error.message);
         if(request instanceof SendToAddress) {
-            if(response.error.code == -6) { // Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.
-
+            if(response.error.code == -6) { // Insufficient Funds
+                LOG.info(response.error.message);
             }
         }
     }
