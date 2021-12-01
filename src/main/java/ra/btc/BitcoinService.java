@@ -25,6 +25,9 @@ import java.net.URL;
 import java.util.*;
 import java.util.logging.Logger;
 
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+
 /**
  * Service for providing access to the Bitcoin network
  */
@@ -112,7 +115,7 @@ public class BitcoinService extends BaseService {
         switch(operation) {
             case OPERATION_RPC_REQUEST: {
                 RPCRequest request = extractRPCRequest(e);
-                if(request==null) return;
+                if(isNull(request)) return;
                 String corrId = UUID.randomUUID().toString();
                 e.addNVP(BitcoinService.class.getName()+".corrId", corrId);
                 clientRPCRequestHold.put(corrId, request);
@@ -146,12 +149,12 @@ public class BitcoinService extends BaseService {
                 String corrId = (String) e.getValue(BitcoinService.class.getName() + ".corrId");
                 RPCRequest clientRequest = clientRPCRequestHold.get(corrId);
                 RPCRequest internalRequest = internalRequestHold.get(corrId);
-                if(response.error!=null) {
+                if(nonNull(response.error)) {
                     handleError(clientRequest, response);
                 }
-                if (internalRequest != null) {
+                if (nonNull(internalRequest)) {
                     if(clientRequest instanceof GetWalletInfo && internalRequest instanceof LoadWallet) {
-                        if(response.error == null || response.error.code == -35) { // -35 = already loaded
+                        if(isNull(response.error) || response.error.code == -35) { // -35 = already loaded
                             clientRPCRequestHold.remove(corrId);
                             internalRequestHold.remove(corrId);
                             try {
@@ -162,7 +165,7 @@ public class BitcoinService extends BaseService {
                                 clientRPCRequestHold.remove(corrId);
                                 internalRequestHold.remove(corrId);
                             }
-                            if(response.error != null) {
+                            if(nonNull(response.error)) {
                                 if(response.error.code == -35) {
                                     LOG.info(((LoadWallet)internalRequest).walletName+" wallet already loaded.");
                                 } else {
@@ -186,7 +189,7 @@ public class BitcoinService extends BaseService {
             }
             case OPERATION_USE_REQUEST: {
                 UseRequest useRequest = extractUseRequest(e);
-                if(useRequest==null) return;
+                if(isNull(useRequest)) return;
                 String corrId = UUID.randomUUID().toString();
                 e.addNVP(BitcoinService.class.getName()+".corrId", corrId);
                 clientUseRequestHold.put(corrId, useRequest);
@@ -231,7 +234,7 @@ public class BitcoinService extends BaseService {
     private RPCRequest extractRPCRequest(Envelope e) {
         RPCRequest request = null;
         Object reqObj = e.getValue(RPCCommand.NAME);
-        if(reqObj==null) {
+        if(isNull(reqObj)) {
             e.addErrorMessage(RPCCommand.NAME + " value required.");
         } else if(reqObj instanceof RPCRequest) {
             request = (RPCRequest) reqObj;
@@ -262,7 +265,7 @@ public class BitcoinService extends BaseService {
     }
 
     private void updateInfo(RPCRequest request, RPCResponse response) {
-        if(response.error!=null) {
+        if(nonNull(response.error)) {
             LOG.warning(response.error.toString());
         } else {
             switch (request.method) {
@@ -359,7 +362,7 @@ public class BitcoinService extends BaseService {
                 rpcUrl = new URL(info.host+REG_TEST_PORT);
             }
             String btcCfgDir;
-            if(config.getProperty("ra.btc.directory")!=null) {
+            if(nonNull(config.getProperty("ra.btc.directory"))) {
                 btcCfgDir = config.getProperty("ra.btc.directory");
             } else {
                 btcCfgDir = SystemSettings.getUserHomeDir().getAbsolutePath() + "/snap/bitcoin-core/common/.bitcoin/";
