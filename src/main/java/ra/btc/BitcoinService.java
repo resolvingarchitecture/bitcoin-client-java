@@ -118,6 +118,8 @@ public class BitcoinService extends BaseService {
                 clientRPCRequestHold.put(corrId, request);
                 if(request instanceof GetWalletInfo) {
                     // Need to ensure Wallet is loaded first
+                    GetWalletInfo getWalletInfo = (GetWalletInfo)request;
+                    getWalletInfo.setWalletName(currentWalletName);
                     LoadWallet loadWallet = new LoadWallet();
                     internalRequestHold.put(corrId, loadWallet);
                     loadWallet.walletName = currentWalletName;
