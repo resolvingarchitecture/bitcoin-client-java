@@ -28,6 +28,12 @@ public class GetWalletInfo extends RPCRequest {
         }
     }
 
+    public void setWalletName(String walletName) {
+        this.wallet.setName(walletName);
+        if(!path.endsWith(walletName))
+            path += walletName;
+    }
+
     @Override
     public void fromMap(Map<String, Object> m) {
         super.fromMap(m);
