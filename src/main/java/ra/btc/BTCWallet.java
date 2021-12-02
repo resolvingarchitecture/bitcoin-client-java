@@ -103,15 +103,20 @@ public class BTCWallet extends CryptoWallet {
         if(m.get("walletname")!=null ) super.name = (String)m.get("walletname");
         if(m.get("walletversion")!=null) super.version = (Integer)m.get("walletversion");
         if(m.get("format")!=null) format = (String)m.get("format");
-        if(m.get("balance")!=null) super.balance = new BTC(Double.parseDouble((String)m.get("balance")));
-        if(m.get("unconfirmed_balance")!=null) super.unconfirmedBalance = new BTC(Double.parseDouble((String)m.get("unconfirmed_balance")));
-        if(m.get("immature_balance")!=null) super.immatureBalance = new BTC(Double.parseDouble((String)m.get("immature_balance")));
+        if(m.get("balance")!=null) super.balance = new BTC((Double)m.get("balance"));
+        if(m.get("unconfirmed_balance")!=null) super.unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance"));
+        if(m.get("immature_balance")!=null) super.immatureBalance = new BTC((Double)m.get("immature_balance"));
         if(m.get("txcount")!=null) super.txCount = (Integer)m.get("txcount");
         if(m.get("keypoololdest")!=null) keypoololdest = (Integer)m.get("keypoololdest");
         if(m.get("keypoolsize")!=null) keypoolsize = (Integer)m.get("keypoolsize");
         if(m.get("keypoolsize_hd_internal")!=null) keypoolsizeHdInternal = (Integer)m.get("keypoolsize_hd_internal");
         if(m.get("unlocked_until")!=null) unlockedUntil = (Integer)m.get("unlocked_until");
-        if(m.get("paytxfee")!=null) paytxfee = new BTC(Double.parseDouble((String)m.get("paytxfee")));
+        if(m.get("paytxfee")!=null) {
+            if(m.get("paytxfee") instanceof String)
+                paytxfee = new BTC(Double.parseDouble((String)m.get("paytxfee")));
+            else
+                paytxfee = new BTC((Double)m.get("paytxfee"));
+        }
         if(m.get("hdseedid")!=null) hdseedid = (String)m.get("hdseedid");
         if(m.get("private_keys_enabled")!=null) privateKeysEnabled = (Boolean)m.get("private_keys_enabled");
     }
