@@ -47,3 +47,7 @@ then set the bitcoin home directory by passing it in as the parameter: ra.btc.di
 ## Implementation
 RPC operations implemented using the following API documentation: https://developer.bitcoin.org/reference/rpc/index.html
 
+## Release Notes
+
+### 1.0.1
+* Send and Receive Bitcoins via the local Bitcoin Core node verified.
