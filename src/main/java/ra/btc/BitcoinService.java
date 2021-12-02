@@ -115,28 +115,26 @@ public class BitcoinService extends BaseService {
         switch(operation) {
             case OPERATION_RPC_REQUEST: {
                 RPCRequest request = extractRPCRequest(e);
+                RPCRequest requestToForward = request;
                 if(isNull(request)) return;
                 String corrId = UUID.randomUUID().toString();
                 e.addNVP(BitcoinService.class.getName()+".corrId", corrId);
                 clientRPCRequestHold.put(corrId, request);
                 if(request instanceof GetWalletInfo) {
                     // Need to ensure Wallet is loaded first
-                    GetWalletInfo getWalletInfo = (GetWalletInfo)request;
+                    GetWalletInfo getWalletInfo = (GetWalletInfo) request;
                     getWalletInfo.setWalletName(currentWalletName);
                     LoadWallet loadWallet = new LoadWallet();
                     internalRequestHold.put(corrId, loadWallet);
                     loadWallet.walletName = currentWalletName;
-                    try {
-                        forwardRequest(e, loadWallet);
-                    } catch (MalformedURLException malformedURLException) {
-                        LOG.warning(malformedURLException.getLocalizedMessage());
-                    }
-                } else {
-                    try {
-                        forwardRequest(e, request);
-                    } catch (MalformedURLException malformedURLException) {
-                        LOG.warning(malformedURLException.getLocalizedMessage());
-                    }
+                    requestToForward = loadWallet;
+                } else if(request instanceof SendToAddress) {
+                    ((SendToAddress)request).setWalletName(currentWalletName);
+                }
+                try {
+                    forwardRequest(e, requestToForward);
+                } catch (MalformedURLException malformedURLException) {
+                    LOG.warning(malformedURLException.getLocalizedMessage());
                 }
                 break;
             }
