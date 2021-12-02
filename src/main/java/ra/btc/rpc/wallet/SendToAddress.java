@@ -11,9 +11,9 @@ public class SendToAddress extends RPCRequest {
 
     public String fromWalletName = "";
     // The bitcoin address to send to.
-    public String receiverAddress;
+    public String receiverAddress = "";
     // The amount in BTC to send. eg 0.1
-    public Double amountInBTC;
+    public Double amountInBTC = 0.0;
     // A comment used to store what the transaction is for. This is not part of the transaction, just kept in your wallet.
     public String comment = "";
     // A comment to store the name of the person or organization to which you’re sending the transaction.
@@ -24,7 +24,7 @@ public class SendToAddress extends RPCRequest {
     // Allow this transaction to be replaced by a transaction with higher fees via BIP 125
     public Boolean replaceable = false;
     // Confirmation target in blocks
-    public Integer confirmationTarget = 6;
+    public Integer confirmationTarget;
     // The fee estimate mode, must be one of (case in-sensitive): “unset” “economical” “conservative”
     public String estimateMode = "unset";
     // (only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses;
@@ -63,6 +63,8 @@ public class SendToAddress extends RPCRequest {
 
     @Override
     public Map<String, Object> toMap() {
+        if(confirmationTarget==null || confirmationTarget==0 && amountInBTC > 0.0)
+            determineConfirmationTarget();
         Map<String,Object> m = super.toMap();
         // Request
         m.put("fromWalletName", fromWalletName);
@@ -96,7 +98,11 @@ public class SendToAddress extends RPCRequest {
         if(m.get("commentTo")!=null) commentTo = (String)m.get("commentTo");
         if(m.get("subtractFeeFromAmount")!=null) subtractFeeFromAmount = (Boolean)m.get("subtractFeeFromAmount");
         if(m.get("replaceable")!=null) replaceable = (Boolean)m.get("replaceable");
-        if(m.get("confirmationTarget")!=null) confirmationTarget = (Integer)m.get("confirmationTarget");
+        if(m.get("confirmationTarget")!=null) {
+            confirmationTarget = (Integer) m.get("confirmationTarget");
+        } else if(amountInBTC > 0.0) {
+            determineConfirmationTarget();
+        }
         if(m.get("estimateMode")!=null) estimateMode = (String)m.get("estimateMode");
         if(m.get("avoidReuse")!=null) avoidReuse = (Boolean)m.get("avoidReuse");
     }

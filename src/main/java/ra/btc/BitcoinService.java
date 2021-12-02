@@ -129,7 +129,10 @@ public class BitcoinService extends BaseService {
                     loadWallet.walletName = currentWalletName;
                     requestToForward = loadWallet;
                 } else if(request instanceof SendToAddress) {
-                    ((SendToAddress)request).setWalletName(currentWalletName);
+                    SendToAddress sendToAddress = (SendToAddress)request;
+                    sendToAddress.setWalletName(currentWalletName);
+                    if(isNull(sendToAddress.confirmationTarget))
+                        sendToAddress.confirmationTarget = 6;
                 }
                 try {
                     forwardRequest(e, requestToForward);
