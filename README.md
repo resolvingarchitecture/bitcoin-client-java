@@ -49,5 +49,5 @@ RPC operations implemented using the following API documentation: https://develo
 
 ## Release Notes
 
-### 1.0.1
+### 1.0
 * Send and Receive Bitcoins via the local Bitcoin Core node verified.
