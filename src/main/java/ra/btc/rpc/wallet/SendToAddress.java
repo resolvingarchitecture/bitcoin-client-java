@@ -29,7 +29,7 @@ public class SendToAddress extends RPCRequest {
     public String estimateMode = "unset";
     // (only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses;
     // addresses are considered dirty if they have previously been used in a transaction.
-    public Boolean avoidReuse = true;
+//    public Boolean avoidReuse = true;
 
     public SendToAddress() {
         super(NAME);
@@ -76,7 +76,7 @@ public class SendToAddress extends RPCRequest {
         m.put("replaceable", replaceable);
         m.put("confirmationTarget", confirmationTarget);
         m.put("estimateMode", estimateMode);
-        m.put("avoidReuse", avoidReuse);
+//        m.put("avoidReuse", avoidReuse);
         params.add(receiverAddress);
         params.add(amountInBTC);
         params.add(comment);
@@ -85,7 +85,7 @@ public class SendToAddress extends RPCRequest {
         params.add(replaceable);
         params.add(confirmationTarget);
         params.add(estimateMode);
-        params.add(avoidReuse);
+//        params.add(avoidReuse);
         return m;
     }
 
@@ -104,6 +104,6 @@ public class SendToAddress extends RPCRequest {
             determineConfirmationTarget();
         }
         if(m.get("estimateMode")!=null) estimateMode = (String)m.get("estimateMode");
-        if(m.get("avoidReuse")!=null) avoidReuse = (Boolean)m.get("avoidReuse");
+//        if(m.get("avoidReuse")!=null) avoidReuse = (Boolean)m.get("avoidReuse");
     }
 }
