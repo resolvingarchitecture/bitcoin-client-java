@@ -7,6 +7,8 @@ import ra.common.currency.wallet.CryptoWallet;
 import java.math.BigInteger;
 import java.util.Map;
 
+import static java.util.Objects.nonNull;
+
 public class BTCWallet extends CryptoWallet {
 
     private String format; // database format - bdb or sqlite
@@ -107,6 +109,8 @@ public class BTCWallet extends CryptoWallet {
         if(m.get("paytxfee")!=null) paytxfee = (Integer)m.get("paytxfee");
         if(m.get("hdseedid")!=null) hdseedid = (String)m.get("hdseedid");
         if(m.get("private_keys_enabled")!=null) privateKeysEnabled = (Boolean)m.get("private_keys_enabled");
+        if(nonNull(m.get("unconfirmed_balance"))) unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance")).value();
+        if(nonNull(m.get("immature_balance"))) immatureBalance = new BTC((Double)m.get("immature_balance")).value();
     }
 
 }
