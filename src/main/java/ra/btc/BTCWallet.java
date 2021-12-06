@@ -26,7 +26,7 @@ public class BTCWallet implements JSONSerializable {
     private Boolean privateKeysEnabled; // false if privatekeys are disabled for this wallet (enforced watch-only wallet)
     private BigInteger unconfirmedBalance; // the total unconfirmed balance of the wallet in Sats
     private BigInteger immatureBalance; // the total immature balance of the wallet in Sats
-    private BigInteger txCount; // the total number of transactions in the wallet in Sats
+    private Integer txCount; // the total number of transactions in the wallet in Sats
 
     public String getName() {
         return name;
@@ -132,11 +132,11 @@ public class BTCWallet implements JSONSerializable {
         this.immatureBalance = immatureBalance;
     }
 
-    public BigInteger getTxCount() {
+    public Integer getTxCount() {
         return txCount;
     }
 
-    public void setTxCount(BigInteger txCount) {
+    public void setTxCount(Integer txCount) {
         this.txCount = txCount;
     }
 
@@ -186,7 +186,7 @@ public class BTCWallet implements JSONSerializable {
         if(nonNull(m.get("unconfirmedBalance"))) unconfirmedBalance = (BigInteger)m.get("unconfirmedBalance");
         if(nonNull(m.get("immature_balance"))) immatureBalance = new BTC((Double)m.get("immature_balance")).value();
         if(nonNull(m.get("immatureBalance"))) immatureBalance = (BigInteger)m.get("immatureBalance");
-        if(nonNull(m.get("txcount"))) txCount = (BigInteger)m.get("txcount");
+        if(nonNull(m.get("txcount"))) txCount = (Integer)m.get("txcount");
     }
 
     @Override
