@@ -21,7 +21,7 @@ public class BTCWallet implements JSONSerializable {
     private Integer keypoolsize; // how many new keys are pre-generated (only counts external keys)
     private Integer keypoolsizeHdInternal; // how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)
     private Integer unlockedUntil; // the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked
-    private Integer paytxfee; // the transaction fee configuration, set in Sats/kB
+    private BigInteger paytxfee; // the transaction fee configuration, set in Sats/kB
     private String hdseedid; // the Hash160 of the HD seed (only present when HD is enabled)
     private Boolean privateKeysEnabled; // false if privatekeys are disabled for this wallet (enforced watch-only wallet)
     private BigInteger unconfirmedBalance; // the total unconfirmed balance of the wallet in Sats
@@ -92,11 +92,11 @@ public class BTCWallet implements JSONSerializable {
         this.unlockedUntil = unlockedUntil;
     }
 
-    public Integer getPaytxfee() {
+    public BigInteger getPaytxfee() {
         return paytxfee;
     }
 
-    public void setPaytxfee(Integer paytxfee) {
+    public void setPaytxfee(BigInteger paytxfee) {
         this.paytxfee = paytxfee;
     }
 
@@ -161,13 +161,25 @@ public class BTCWallet implements JSONSerializable {
     public void fromMap(Map<String, Object> m) {
         if(nonNull(m.get("walletname"))) name = (String)m.get("walletname");
         if(nonNull(m.get("walletversion"))) version = (Integer)m.get("walletversion");
-        if(nonNull(m.get("balance"))) balance = (BigInteger)m.get("balance");
+        Object balObj = m.get("balance");
+        if(nonNull(balObj)) {
+            if(balObj instanceof BigInteger)
+                balance = (BigInteger)m.get("balance");
+            else if(balObj instanceof Double)
+                balance = new BTC((Double)m.get("balance")).value();
+        }
         if(m.get("format")!=null) format = (String)m.get("format");
         if(m.get("keypoololdest")!=null) keypoololdest = (Integer)m.get("keypoololdest");
         if(m.get("keypoolsize")!=null) keypoolsize = (Integer)m.get("keypoolsize");
         if(m.get("keypoolsize_hd_internal")!=null) keypoolsizeHdInternal = (Integer)m.get("keypoolsize_hd_internal");
         if(m.get("unlocked_until")!=null) unlockedUntil = (Integer)m.get("unlocked_until");
-        if(m.get("paytxfee")!=null) paytxfee = (Integer)m.get("paytxfee");
+        Object payTxFeeObj = m.get("paytxfee");
+        if(nonNull(payTxFeeObj)) {
+            if(payTxFeeObj instanceof BigInteger)
+                paytxfee = (BigInteger)m.get("paytxfee");
+            else if(payTxFeeObj instanceof Double)
+                paytxfee = new BTC((Double)payTxFeeObj).value();
+        }
         if(m.get("hdseedid")!=null) hdseedid = (String)m.get("hdseedid");
         if(m.get("private_keys_enabled")!=null) privateKeysEnabled = (Boolean)m.get("private_keys_enabled");
         if(nonNull(m.get("unconfirmed_balance"))) unconfirmedBalance = new BTC((Double)m.get("unconfirmed_balance")).value();
