@@ -27,9 +27,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git@github.com/resolvingarchitecture/dex-java</connection>
-		<developerConnection>scm:git@github.com/resolvingarchitecture/dex-java</developerConnection>
-		<url>git@github.com/resolvingarchitecture/dex-java</url>
+		<connection>scm:git@github.com/resolvingarchitecture/bitcoin-client-java</connection>
+		<developerConnection>scm:git@github.com/resolvingarchitecture/bitcoin-client-java</developerConnection>
+		<url>git@github.com/resolvingarchitecture/bitcoin-client-java</url>
 	</scm>
 
 	<repositories>
