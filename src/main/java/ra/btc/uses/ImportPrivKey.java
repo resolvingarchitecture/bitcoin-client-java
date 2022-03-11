@@ -2,23 +2,10 @@ package ra.btc.uses;
 
 import ra.btc.rpc.RPCRequest;
 import ra.btc.rpc.RPCResponse;
-import ra.common.currency.crypto.BTC;
 
 import java.util.Map;
 
-/**
- * Send BTC to a public address.
- *
- */
-public class SendBTC extends UseRequestBase {
-
-    public String receiverAddress;
-    public BTC totalAmount;
-    // Either senderAmount or receiverAmount set
-    public BTC senderAmount;
-    public BTC receiverAmount;
-    public BTC estimatedMinerFee;
-    public BTC devFee;
+public class ImportPrivKey extends UseRequestBase {
 
     @Override
     public Boolean additionalRequests() {
