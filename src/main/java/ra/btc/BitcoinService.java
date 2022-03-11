@@ -348,6 +348,7 @@ public class BitcoinService extends BaseService {
         if(!super.start(p))
             return false;
         LOG.info("Loading properties...");
+        boolean configLoaded = false;
         try {
             config = Config.loadAll(p, "ra-btc.config");
 //            String modeParam = config.getProperty("ra.btc.mode");
@@ -369,10 +370,18 @@ public class BitcoinService extends BaseService {
                 btcCfgDir = SystemSettings.getUserHomeDir().getAbsolutePath() + "/snap/bitcoin-core/common/.bitcoin/";
             }
             LOG.info(btcCfgDir);
-            LOG.info("NodeConfig loaded: "+nodeConfig.load(btcCfgDir));
+            configLoaded = nodeConfig.load(btcCfgDir);
         } catch (Exception e) {
             LOG.severe(e.getLocalizedMessage());
             return false;
+        }
+        if(!configLoaded) {
+            LOG.severe("Unable to load Bitcoin Node config.");
+            return false;
+        }
+        boolean bitcoinCoreUsing1M5 = config1M5Proxy();
+        if(!bitcoinCoreUsing1M5) {
+            LOG.warning("Not using 1M5 for local Bitcoin Core. Please configure manually 1M5 as proxy.");
         }
         // Send to establish initial info
         try {
@@ -418,6 +427,11 @@ public class BitcoinService extends BaseService {
         updateStatus(ServiceStatus.GRACEFULLY_SHUTDOWN);
         LOG.info("Gracefully shutdown.");
         return true;
+    }
+
+    private boolean config1M5Proxy() {
+
+        return false;
     }
 
 //    public static void main(String[] args) {
