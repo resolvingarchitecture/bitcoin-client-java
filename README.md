@@ -18,6 +18,16 @@ local Tor proxy at least for inter-Bitcoin-node communications.
 
 * objectorange (Brian Taylor) - [GitHub](https://github.com/objectorange) | [LinkedIn](https://www.linkedin.com/in/decentralizationarchitect/) | brian@resolvingarchitecture.io PGP: 2FA3 9B12 DA50 BD7C E43C 3031 A15D FABB 2579 77DC
 
+## Motivation
+With plenty of BTC wallets on the market and Decentralized Exchanges, why build another Bitcoin Client?
+
+Most wallets as of 2021 are questionably decentralized, the best arguably being Samourai Wallet.
+Samourai Wallet is an SPV wallet not using a full local node and the local Bitcoin Core wallet
+is difficult for the average internet user to use. In addition, current wallets don't configure
+the local Bitcoin Core node to communicate through 1M5 to ensure the local Bitcoin node is truly
+censorship-resistance. Tor can be censored, take China as a great example. 1M5 needs to be used
+to ensure real censorship-resistance.
+
 ## Design
 BitcoinService is designed to work with the RA Service Bus. It sends and expects to receive messages using it.
 It currently depends on the ra.http.HTTPService running as a client only (for local Bitcoin node RPC).
