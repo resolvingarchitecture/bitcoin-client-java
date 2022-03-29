@@ -1,9 +1,8 @@
 package ra.btc.rpc.network;
 
-import ra.btc.BitcoinPeer;
+import ra.btc.rpc.BitcoinPeer;
 import ra.btc.rpc.RPCRequest;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

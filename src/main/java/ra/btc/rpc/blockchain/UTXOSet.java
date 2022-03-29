@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.blockchain;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,10 +6,15 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-public class LocalAddress implements JSONSerializable {
-    public String address;
-    public Integer port;
-    public Integer score;
+public class UTXOSet implements JSONSerializable {
+    public Integer height;
+    public String bestblock;
+    public Integer transactions;
+    public Integer txouts;
+    public Integer bogosize;
+    public String hashSerialized;
+    public Integer diskSize;
+    public Double totalAmount;
 
     @Override
     public Map<String, Object> toMap() {

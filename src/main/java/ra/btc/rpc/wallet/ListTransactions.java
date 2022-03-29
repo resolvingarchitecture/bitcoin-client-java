@@ -1,6 +1,6 @@
 package ra.btc.rpc.wallet;
 
-import ra.btc.Transaction;
+import ra.btc.rpc.tx.Transaction;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.ArrayList;

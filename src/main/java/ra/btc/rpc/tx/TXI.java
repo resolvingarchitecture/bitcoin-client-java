@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.tx;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;

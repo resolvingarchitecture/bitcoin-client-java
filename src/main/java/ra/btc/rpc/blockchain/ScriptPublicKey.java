@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.blockchain;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -7,20 +7,15 @@ import ra.common.JSONPretty;
 import java.util.List;
 import java.util.Map;
 
-public class NetworkInfo implements JSONSerializable {
-    public Integer version;
-    public String subVersion;
-    public Integer protocolVersion;
-    public String localServices;
-    public Boolean localRelay;
-    public Integer timeOffset;
-    public Integer connections;
-    public Boolean networkActive;
-    public List<Network> networks;
-    public Double relayFee;
-    public Double incrementalFee;
-    public List<LocalAddress> localAddresses;
-    public String warnings;
+public class ScriptPublicKey implements JSONSerializable {
+
+    public enum Type {pubkeyhash}
+
+    public String asm;
+    public String hex;
+    public Integer reqSigs; // Number of required signatures
+    public Type type; // The type eg pubkeyhash
+    public List<String> addresses; // array of bitcoin addresses
 
     @Override
     public Map<String, Object> toMap() {

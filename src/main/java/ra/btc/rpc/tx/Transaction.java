@@ -1,5 +1,7 @@
-package ra.btc;
+package ra.btc.rpc.tx;
 
+import ra.btc.rpc.blockchain.ScriptPublicKey;
+import ra.btc.rpc.blockchain.UTXO;
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
 import ra.common.JSONPretty;

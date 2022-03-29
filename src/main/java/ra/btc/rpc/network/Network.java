@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.network;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,13 +6,12 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-public class Memory implements JSONSerializable {
-    public Integer used;
-    public Integer free;
-    public Integer total;
-    public Integer locked;
-    public Integer chunksUsed;
-    public Integer chunksFree;
+public class Network implements JSONSerializable {
+    public String name;
+    public Boolean limited;
+    public Boolean reachable;
+    public String proxy;
+    public Boolean proxyRandomizeCredentials;
 
     @Override
     public Map<String, Object> toMap() {

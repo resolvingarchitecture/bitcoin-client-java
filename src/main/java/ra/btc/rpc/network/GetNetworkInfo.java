@@ -1,6 +1,5 @@
 package ra.btc.rpc.network;
 
-import ra.btc.NetworkInfo;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;

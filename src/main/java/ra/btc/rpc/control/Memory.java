@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.control;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,15 +6,13 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-public class UTXOSet implements JSONSerializable {
-    public Integer height;
-    public String bestblock;
-    public Integer transactions;
-    public Integer txouts;
-    public Integer bogosize;
-    public String hashSerialized;
-    public Integer diskSize;
-    public Double totalAmount;
+public class Memory implements JSONSerializable {
+    public Integer used;
+    public Integer free;
+    public Integer total;
+    public Integer locked;
+    public Integer chunksUsed;
+    public Integer chunksFree;
 
     @Override
     public Map<String, Object> toMap() {

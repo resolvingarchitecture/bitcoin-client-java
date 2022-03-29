@@ -1,6 +1,5 @@
 package ra.btc.rpc.control;
 
-import ra.btc.Memory;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;

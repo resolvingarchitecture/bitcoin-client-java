@@ -1,7 +1,5 @@
 package ra.btc.rpc.blockchain;
 
-import ra.btc.ScriptPublicKey;
-import ra.btc.UTXO;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.List;

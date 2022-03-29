@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.network;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,12 +6,10 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-public class ScriptVerificationError implements JSONSerializable {
-    public String txid; // The hash of the referenced, previous transaction
-    public Integer vOut; // The index of the output to spent and used as input
-    public String scriptSig; // The hex-encoded signature script
-    public Integer n; // Script sequence number
-    public String error; // Verification or signing error related to the input
+public class LocalAddress implements JSONSerializable {
+    public String address;
+    public Integer port;
+    public Integer score;
 
     @Override
     public Map<String, Object> toMap() {

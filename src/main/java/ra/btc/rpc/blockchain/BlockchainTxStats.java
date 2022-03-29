@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.blockchain;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,16 +6,18 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-/**
- * Active state of the TX memory pool.
- */
-public class MempoolInfo implements JSONSerializable {
-    public Integer size;
-    public Integer bytes;
-    public Integer usage;
-    public Integer maxMempool;
-    public Integer mempoolMinFee;
-    public Integer minRelayTxFee;
+public class BlockchainTxStats implements JSONSerializable {
+    // Request
+    public Integer nBlocks;
+    public String blockhash;
+    // Response
+    public Integer time;
+    public Integer txCount;
+    public String windowFinalBlockHash;
+    public Integer windowBlockCount;
+    public Integer windowTxCount;
+    public Integer windowInterval;
+    public Integer txRate;
 
     @Override
     public Map<String, Object> toMap() {

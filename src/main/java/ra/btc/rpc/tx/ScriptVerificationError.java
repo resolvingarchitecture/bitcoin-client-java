@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.tx;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,12 +6,12 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-/**
- * An object with output descriptor and metadata
- */
-public class ScanObject implements JSONSerializable {
-    public String desc; // (string, required) An output descriptor
-    public Integer range = 1000; // (numeric or array, optional, default=1000) The range of HD chain indexes to explore (either end or [begin,end])
+public class ScriptVerificationError implements JSONSerializable {
+    public String txid; // The hash of the referenced, previous transaction
+    public Integer vOut; // The index of the output to spent and used as input
+    public String scriptSig; // The hex-encoded signature script
+    public Integer n; // Script sequence number
+    public String error; // Verification or signing error related to the input
 
     @Override
     public Map<String, Object> toMap() {

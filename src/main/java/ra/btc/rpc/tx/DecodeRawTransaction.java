@@ -1,10 +1,7 @@
 package ra.btc.rpc.tx;
 
-import ra.btc.*;
 import ra.btc.rpc.RPCRequest;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**

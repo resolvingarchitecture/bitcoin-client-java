@@ -1,7 +1,6 @@
 package ra.btc.rpc.tx;
 
-import ra.btc.TXI;
-import ra.btc.UTXO;
+import ra.btc.rpc.blockchain.UTXO;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.List;

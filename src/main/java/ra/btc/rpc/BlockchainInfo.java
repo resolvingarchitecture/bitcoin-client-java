@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc;
 
 import ra.common.JSONSerializable;
 import ra.common.JSONParser;
@@ -6,7 +6,7 @@ import ra.common.JSONPretty;
 
 import java.util.Map;
 
-import static ra.btc.BitcoinService.LOCAL_RPC_HOST;
+import static ra.btc.rpc.LocalBitcoinClient.LOCAL_RPC_HOST;
 
 public class BlockchainInfo implements JSONSerializable {
     public Boolean automaticPruning;

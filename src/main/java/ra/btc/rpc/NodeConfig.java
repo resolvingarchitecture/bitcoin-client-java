@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc;
 
 import java.io.BufferedReader;
 import java.io.File;

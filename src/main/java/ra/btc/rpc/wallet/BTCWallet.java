@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc.wallet;
 
 import ra.common.JSONParser;
 import ra.common.JSONPretty;

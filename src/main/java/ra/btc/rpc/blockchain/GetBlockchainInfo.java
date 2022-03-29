@@ -1,6 +1,6 @@
 package ra.btc.rpc.blockchain;
 
-import ra.btc.BlockchainInfo;
+import ra.btc.rpc.BlockchainInfo;
 import ra.btc.rpc.RPCRequest;
 
 import java.util.Map;

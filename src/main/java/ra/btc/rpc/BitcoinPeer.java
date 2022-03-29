@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc;
 
 import ra.common.JSONSerializable;
 import ra.common.network.Network;

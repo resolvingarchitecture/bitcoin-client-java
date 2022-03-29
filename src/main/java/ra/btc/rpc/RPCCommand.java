@@ -1,4 +1,4 @@
-package ra.btc;
+package ra.btc.rpc;
 
 public class RPCCommand {
 
