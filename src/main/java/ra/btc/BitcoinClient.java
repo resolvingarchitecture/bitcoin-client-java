@@ -2,6 +2,7 @@ package ra.btc;
 
 import ra.common.Envelope;
 
+import java.io.IOException;
 import java.util.Properties;
 
 public interface BitcoinClient {
@@ -45,7 +46,7 @@ public interface BitcoinClient {
 
     void handleDocument(Envelope e);
 
-    boolean destroy();
+    boolean destroy() throws Exception;
 
-    boolean destroyGracefully();
+    boolean destroyGracefully() throws Exception;
 }

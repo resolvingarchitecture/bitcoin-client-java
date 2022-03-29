@@ -13,6 +13,7 @@ import ra.common.Envelope;
 import ra.common.JSONParser;
 import ra.common.SystemSettings;
 import ra.common.route.Route;
+import ra.common.tasks.TaskRunner;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,6 +41,7 @@ public class LocalBitcoinClient implements BitcoinClient {
     public static final String OPERATION_USE_REQUEST = "USE_REQUEST";
 
     private final BitcoinService service;
+    private final TaskRunner taskRunner;
 
     private final NodeConfig nodeConfig = new NodeConfig();
     public static URL rpcUrl;
@@ -55,8 +57,9 @@ public class LocalBitcoinClient implements BitcoinClient {
     private byte mode = 0; // 0 = local, 1 = remote personal, 2 = random remote non-personal
     private String currentWalletName = "";
 
-    public LocalBitcoinClient(BitcoinService service) {
+    public LocalBitcoinClient(BitcoinService service, TaskRunner taskRunner) {
         this.service = service;
+        this.taskRunner = taskRunner;
     }
 
     @Override
@@ -317,12 +320,12 @@ public class LocalBitcoinClient implements BitcoinClient {
     }
 
     @Override
-    public boolean destroy() {
-        return false;
+    public boolean destroy() throws Exception {
+        return true;
     }
 
     @Override
-    public boolean destroyGracefully() {
-        return false;
+    public boolean destroyGracefully() throws Exception {
+        return true;
     }
 }
