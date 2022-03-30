@@ -2,14 +2,11 @@ package ra.btc;
 
 import ra.common.Envelope;
 
-import java.io.IOException;
 import java.util.Properties;
 
 public interface BitcoinClient {
 
     // Lower Level Use Case Requests
-    String OPERATION_CREATE_2_2_MULTISIG = "CREATE_2_2_MULTISIG";
-    String OPERATION_CLOSE_2_2_MULTISIG = "CLOSE_2_2_MULTISIG";
     String OPERATION_CREATE_2_N_MULTISIG = "CREATE_2_N_MULTISIG";
     String OPERATION_CLOSE_2_N_MULTISIG = "CLOSE_2_N_MULTISIG";
 

@@ -7,8 +7,10 @@ Provides a higher-layer API as a Service for a local Bitcoin Core node via its R
 No support is provided for remote nodes nor SPV clients, neither are they expected to be in the future.
 
 ## Authors / Developers
-
 * objectorange (Brian Taylor) - [GitHub](https://github.com/objectorange) | [LinkedIn](https://www.linkedin.com/in/decentralizationarchitect/) | brian@resolvingarchitecture.io PGP: 2FA3 9B12 DA50 BD7C E43C 3031 A15D FABB 2579 77DC
+
+## Licensing
+Project does not recognize copyright laws, licensing not required.
 
 ## Motivation
 With plenty of BTC wallets on the market and Decentralized Exchanges, why build another Bitcoin Client?

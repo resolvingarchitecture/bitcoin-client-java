@@ -23,10 +23,13 @@ public class BitcoinService extends BaseService {
     private BitcoinClient client;
     private TaskRunner taskRunner;
 
-    public BitcoinService() {}
+    public BitcoinService() {
+        taskRunner = new TaskRunner(1,1);
+    }
 
     public BitcoinService(MessageProducer producer, ServiceStatusObserver observer) {
         super(producer, observer);
+        taskRunner = new TaskRunner(1,1);
     }
 
     @Override
