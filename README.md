@@ -74,4 +74,5 @@ RPC operations implemented using the following API documentation: https://develo
 * In progress
 
 ### 3.0 - Remote Bitcoin Core Node Integration via RA Network Manager
+* Uses a modified BitcoinJ version where its network stack is replaced with the RA Network Manager
 * TBD

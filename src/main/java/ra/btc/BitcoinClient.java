@@ -6,6 +6,8 @@ import java.util.Properties;
 
 public interface BitcoinClient {
 
+    String OPERATION_BITCOIN_PEERS = "BITCOIN_PEERS";
+
     // Lower Level Use Case Requests
     String OPERATION_CREATE_2_N_MULTISIG = "CREATE_2_N_MULTISIG";
     String OPERATION_CLOSE_2_N_MULTISIG = "CLOSE_2_N_MULTISIG";

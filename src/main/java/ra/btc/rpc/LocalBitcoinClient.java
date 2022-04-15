@@ -41,7 +41,6 @@ public class LocalBitcoinClient implements BitcoinClient {
     public static final String OPERATION_USE_REQUEST = "USE_REQUEST";
 
     private final BitcoinService service;
-    private final TaskRunner taskRunner;
 
     private final NodeConfig nodeConfig = new NodeConfig();
     public static URL rpcUrl;
@@ -57,9 +56,8 @@ public class LocalBitcoinClient implements BitcoinClient {
     private byte mode = 0; // 0 = local, 1 = remote personal, 2 = random remote non-personal
     private String currentWalletName = "";
 
-    public LocalBitcoinClient(BitcoinService service, TaskRunner taskRunner) {
+    public LocalBitcoinClient(BitcoinService service) {
         this.service = service;
-        this.taskRunner = taskRunner;
     }
 
     @Override

@@ -21,15 +21,11 @@ public class BitcoinService extends BaseService {
     private static final Logger LOG = Logger.getLogger(BitcoinService.class.getName());
 
     private BitcoinClient client;
-    private TaskRunner taskRunner;
 
-    public BitcoinService() {
-        taskRunner = new TaskRunner(1,1);
-    }
+    public BitcoinService() {}
 
     public BitcoinService(MessageProducer producer, ServiceStatusObserver observer) {
         super(producer, observer);
-        taskRunner = new TaskRunner(1,1);
     }
 
     @Override
@@ -51,12 +47,15 @@ public class BitcoinService extends BaseService {
             return false;
         }
         if(localNodeRunning()) {
-            client = new LocalBitcoinClient(this, taskRunner);
+            client = new LocalBitcoinClient(this);
         } else {
-            client = new BitcoinJClient(this, taskRunner);
+            client = new BitcoinJClient(this);
         }
         try {
-            client.init(p);
+            if(!client.init(p)) {
+                LOG.severe("Client initialization failed, exiting.");
+                return false;
+            }
         } catch (Exception e) {
             LOG.severe(e.getLocalizedMessage());
             return false;
