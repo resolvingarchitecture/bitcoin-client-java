@@ -1,17 +1,26 @@
 package ra.btc.bitcoinj;
 
-import org.bitcoinj.core.*;
-import org.bitcoinj.core.listeners.DownloadProgressTracker;
+import org.bitcoinj.base.BitcoinNetwork;
+import org.bitcoinj.base.Coin;
+import org.bitcoinj.base.ScriptType;
+import org.bitcoinj.base.Sha256Hash;
+import org.bitcoinj.core.AbstractBlockChain;
+import org.bitcoinj.core.Context;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.crypto.ECKey;
+import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.net.BlockingClientManager;
+import org.bitcoinj.net.ClientConnectionManager;
 import org.bitcoinj.net.discovery.PeerDiscovery;
-import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.params.RegTestParams;
-import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
-import org.bitcoinj.store.BlockStoreException;
-import org.bitcoinj.store.SPVBlockStore;
-import org.bitcoinj.wallet.*;
+import org.bitcoinj.wallet.DeterministicSeed;
+import org.bitcoinj.wallet.KeyChainGroupStructure;
 import ra.btc.BTCEscrow;
 import ra.btc.BitcoinClient;
 import ra.btc.BitcoinService;
@@ -20,39 +29,51 @@ import ra.common.network.NetworkPeer;
 import ra.common.route.Route;
 import ra.common.service.Service;
 
+import javax.net.SocketFactory;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.channels.FileLock;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.net.Proxy;
+import java.net.Socket;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.logging.Logger;
 
+/**
+ * BitcoinJ-backed {@link BitcoinClient}, used when no local Bitcoin Core node is detected
+ * ({@link ra.btc.BitcoinService#localNodeRunning()}). Runs an SPV wallet via
+ * {@link WalletAppKit} (bitcoinj 0.17.1 - package layout and constructors matching the working
+ * reference in {@code 1m5-android}'s {@code WalletService}).
+ *
+ * <p>BitcoinJ must never connect to peers directly - all P2P connections should be routable
+ * through whichever network this node is currently using (Tor/I2P/1M5), so BitcoinJ's own DNS
+ * peer discovery is disabled ({@link #getPeers(long, Duration)} always returns {@code null};
+ * peer addresses are meant to arrive from the RA network manager instead - see
+ * {@link #getBitcoinPeers()}, still a TODO wire-up) and, when {@code ra.btc.socks.host}/
+ * {@code ra.btc.socks.port} are configured, the peer group's connection manager is swapped for a
+ * {@link BlockingClientManager} routed through that SOCKS proxy (bitcoinj's own
+ * {@code BlockingClient} javadoc names this as the supported way to connect over a proxy - the
+ * newer NIO transport it uses by default cannot).
+ */
 public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
 
     private static final Logger LOG = Logger.getLogger(BitcoinJClient.class.getName());
 
     private final BitcoinService service;
 
-    private final String userAgent = "RA-Bitcoin-Service";
-    private final String version = "1";
-    private NetworkParameters params;
-    private SPVBlockStore store;
-    private BlockChain chain;
-    private PeerGroup peerGroup;
-    private InputStream checkpoints;
     private DeterministicSeed restoreFromSeed;
     private DeterministicKey restoreFromKey;
-    private PeerDiscovery discovery;
 
-    private File walletFile;
-    private Wallet wallet;
+    private NetworkParameters params;
+    private WalletAppKit kit;
 
-    private Map<UUID, BTCEscrow> escrows = new HashMap<>();
-
-    protected volatile Context context;
+    private final Map<UUID, BTCEscrow> escrows = new HashMap<>();
 
     public BitcoinJClient(BitcoinService service) {
         this.service = service;
@@ -70,116 +91,115 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
 
     @Override
     public boolean init(Properties config) throws Exception {
-
-        Context.propagate(context);
         File directory = service.getServiceDirectory();
-        try {
-            File chainFile = new File(directory, "bitcoinj.spvchain");
-            boolean chainFileExists = chainFile.exists();
-            if (chainFileExists && isChainFileLocked()) {
-                LOG.severe("This service is already running and cannot be started twice.");
-                return false;
-            }
-            // init wallet
-            walletFile = new File(directory, "bitcoinj.wallet");
-            if (walletFile.exists()) {
-                try {
-                    wallet = Wallet.loadFromFile(walletFile);
-                } catch (UnreadableWalletException e) {
-                    LOG.info("Unable to load wallet from file.");
+
+        String env = config.getProperty("ra.env");
+        final BitcoinNetwork network;
+        if ("test".equalsIgnoreCase(env) || "qa".equalsIgnoreCase(env)) {
+            network = BitcoinNetwork.TESTNET;
+            LOG.info("BitcoinJ Client in Test mode.");
+        } else if ("prod".equalsIgnoreCase(env)) {
+            network = BitcoinNetwork.MAINNET;
+            LOG.info("BitcoinJ Client in Production mode.");
+        } else {
+            network = BitcoinNetwork.REGTEST;
+            LOG.info("BitcoinJ Client in RegTest mode.");
+        }
+        params = NetworkParameters.of(network);
+        Context.propagate(new Context(params));
+
+        final String socksHost = config.getProperty("ra.btc.socks.host");
+        final int socksPort = parseIntOrDefault(config.getProperty("ra.btc.socks.port"), 0);
+        final boolean useSocks = socksHost != null && !socksHost.isEmpty() && socksPort > 0;
+
+        kit = new WalletAppKit(network, ScriptType.P2WPKH, KeyChainGroupStructure.BIP32, directory, "bitcoinj") {
+            @Override
+            protected PeerGroup createPeerGroup() {
+                if (!useSocks) {
+                    return super.createPeerGroup();
                 }
-            } else {
-                KeyChainGroup.Builder kcg = KeyChainGroup.builder(params, KeyChainGroupStructure.DEFAULT);
-                wallet = new Wallet(params, kcg.build()); // default
-                wallet.saveToFile(walletFile);
+                LOG.info("Routing Bitcoin P2P connections through SOCKS proxy " + socksHost + ":" + socksPort);
+                SocketFactory socksSocketFactory = socksSocketFactory(socksHost, socksPort);
+                ClientConnectionManager connectionManager = new BlockingClientManager(socksSocketFactory);
+                return new SocksRoutedPeerGroup(network, vChain, connectionManager);
             }
-            // init network
-            String env = config.getProperty("ra.env");
-            if ("test".equalsIgnoreCase(env) || "qa".equalsIgnoreCase(env)) {
-                params = TestNet3Params.get();
-                LOG.info("BitcoinJ Client in Test mode.");
-            } else if ("prod".equalsIgnoreCase(env)) {
-                params = MainNetParams.get();
-                LOG.info("BitcoinJ Client in Production mode.");
-            } else {
-                params = RegTestParams.get();
-                LOG.info("BitcoinJ Client in RegTest mode.");
-            }
+        };
 
-            // Initiate Bitcoin network objects (block store, blockchain and peer group)
-            store = new SPVBlockStore(params, chainFile);
-            if (!chainFileExists || restoreFromSeed != null || restoreFromKey != null) {
-                if (checkpoints == null && !Utils.isAndroidRuntime()) {
-                    checkpoints = CheckpointManager.openStream(params);
-                }
-                if (checkpoints != null) {
-                    // Initialize the chain file with a checkpoint to speed up first-run sync.
-                    long time;
-                    if (restoreFromSeed != null) {
-                        time = restoreFromSeed.getCreationTimeSeconds();
-                        if (chainFileExists) {
-                            LOG.info("Clearing the chain file in preparation for restore.");
-                            store.clear();
-                        }
-                    } else if (restoreFromKey != null) {
-                        time = restoreFromKey.getCreationTimeSeconds();
-                        if (chainFileExists) {
-                            LOG.info("Clearing the chain file in preparation for restore.");
-                            store.clear();
-                        }
-                    } else {
-                        time = wallet.getEarliestKeyCreationTime();
-                    }
-                    if (time > 0)
-                        CheckpointManager.checkpoint(params, checkpoints, store, time);
-                    else
-                        LOG.warning("Creating a new un-check-pointed block store due to a wallet with a creation time of zero: this will result in a very slow chain sync");
-                } else if (chainFileExists) {
-                    LOG.info("Clearing the chain file in preparation for restore.");
-                    store.clear();
-                }
-            }
-            chain = new BlockChain(params, store);
-            peerGroup = new PeerGroup(params, chain);
-            peerGroup.setUserAgent(userAgent, version);
+        if (restoreFromSeed != null) {
+            kit.restoreWalletFromSeed(restoreFromSeed);
+        } else if (restoreFromKey != null) {
+            kit.restoreWalletFromKey(restoreFromKey);
+        }
 
-            // Set up peer addresses or discovery first, so if wallet extensions try to broadcast a transaction
-            // before we're actually connected the broadcast waits for an appropriate number of connections.
-            if (peerAddresses != null) {
-                for (PeerAddress addr : peerAddresses) peerGroup.addAddress(addr);
-                peerGroup.setMaxConnections(peerAddresses.length);
-                peerAddresses = null;
-            } else if (!params.getId().equals(NetworkParameters.ID_REGTEST)) {
-                peerGroup.addPeerDiscovery(this);
-            }
-            chain.addWallet(wallet);
-            peerGroup.addWallet(wallet);
-            onSetupCompleted();
-
-            if (blockingStartup) {
-                peerGroup.start();
-                // Make sure we shut down cleanly.
-                installShutdownHook();
-
-                // TODO: Be able to use the provided download listener when doing a blocking startup.
-                final DownloadProgressTracker listener = new DownloadProgressTracker();
-                peerGroup.startBlockChainDownload(listener);
-                listener.await();
-            } else {
-                peerGroup.startAsync().whenComplete((result, t) -> {
-                    if (t == null) {
-                        final DownloadProgressTracker l = downloadListener == null ? new DownloadProgressTracker() : downloadListener;
-                        peerGroup.startBlockChainDownload(l);
-                    } else {
-                        throw new RuntimeException(t);
-                    }
-                });
-            }
-        } catch (BlockStoreException e) {
-            LOG.severe(e.getLocalizedMessage());
+        if (kit.isChainFileLocked()) {
+            LOG.severe("This service is already running and cannot be started twice.");
             return false;
         }
+
+        // We never want BitcoinJ to discover/connect to peers on its own (DNS or otherwise) -
+        // all peer addresses should be routed through the RA network manager, see getPeers().
+        if (network == BitcoinNetwork.REGTEST) {
+            kit.connectToLocalHost();
+        } else {
+            kit.setDiscovery(this);
+        }
+        kit.setBlockingStartup(false);
+
+        kit.startAsync();
+        try {
+            kit.awaitRunning();
+        } catch (RuntimeException e) {
+            LOG.severe("BitcoinJ WalletAppKit failed to start: " + e.getMessage());
+            return false;
+        }
+        LOG.info("BitcoinJ WalletAppKit is running.");
         return true;
+    }
+
+    private static int parseIntOrDefault(String value, int def) {
+        if (value == null || value.isEmpty()) return def;
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    private static SocketFactory socksSocketFactory(String socksHost, int socksPort) {
+        final Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socksHost, socksPort));
+        return new SocketFactory() {
+            @Override
+            public Socket createSocket() {
+                // Unconnected, proxy-bound socket - BlockingClient calls socket.connect(address, timeout) itself.
+                return new Socket(proxy);
+            }
+            @Override
+            public Socket createSocket(String host, int port) throws IOException {
+                throw new UnsupportedOperationException("only createSocket() is used by BlockingClient");
+            }
+            @Override
+            public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException {
+                throw new UnsupportedOperationException("only createSocket() is used by BlockingClient");
+            }
+            @Override
+            public Socket createSocket(InetAddress host, int port) throws IOException {
+                throw new UnsupportedOperationException("only createSocket() is used by BlockingClient");
+            }
+            @Override
+            public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
+                throw new UnsupportedOperationException("only createSocket() is used by BlockingClient");
+            }
+        };
+    }
+
+    /**
+     * {@link PeerGroup}'s connection-manager constructor is {@code protected}; this subclass
+     * exists only to reach it from {@link BitcoinJClient}'s {@code createPeerGroup()} override.
+     */
+    private static final class SocksRoutedPeerGroup extends PeerGroup {
+        SocksRoutedPeerGroup(BitcoinNetwork network, AbstractBlockChain chain, ClientConnectionManager connectionManager) {
+            super(network, chain, connectionManager);
+        }
     }
 
     @Override
@@ -190,7 +210,7 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
             case OPERATION_BITCOIN_PEERS: {
                 // Incoming Response from Bitcoin Peers request
                 Object nPeersObj = e.getValue(NetworkPeer.class.getName());
-                if(nPeersObj!=null && nPeersObj instanceof List) {
+                if(nPeersObj instanceof List) {
                     List<NetworkPeer> nPeers = (List<NetworkPeer>)nPeersObj;
                     for(NetworkPeer np : nPeers) {
 
@@ -210,11 +230,17 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
     }
 
     @Override
-    public List<InetSocketAddress> getPeers(long l, long l1, TimeUnit timeUnit) {
+    public List<InetSocketAddress> getPeers(long services, Duration timeout) throws PeerDiscoveryException {
         // We never want BitcoinJ to attempt to make the connections directly to Peers,
         // we want it to go through Network Manager in case it gets blocked (e.g. can switch to Tor)
         LOG.info("BitcoinJ requesting peers...ignoring.");
         return null;
+    }
+
+    @Override
+    public void shutdown() {
+        // Just ignore
+        LOG.info("BitcoinJ indicating it is shutting down.");
     }
 
     /**
@@ -271,7 +297,7 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
         Coin amount = Coin.valueOf(escrow.satsToSend);
         escrow.tx.addOutput(amount, script);
         escrows.put(escrow.id, escrow);
-        peerGroup.broadcastTransaction(escrow.tx);
+        kit.peerGroup().broadcastTransaction(escrow.tx);
         return escrow;
     }
 
@@ -283,7 +309,7 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
         escrow.tx = new Transaction(params);
         escrow.tx.addOutput(multisigOutput.getValue(), escrow.sendingParty);
 
-        peerGroup.broadcastTransaction(escrow.tx);
+        kit.peerGroup().broadcastTransaction(escrow.tx);
     }
 
     /**
@@ -299,21 +325,16 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
         Sha256Hash sigHash = escrow.tx.hashForSignature(0, multisigScript, Transaction.SigHash.ALL, false);
         escrow.receivingPartySig = escrow.receivingParty.sign(sigHash);
 
-        peerGroup.broadcastTransaction(escrow.tx);
-    }
-
-    @Override
-    public void shutdown() {
-        // Just ignore
-        LOG.info("BitcoinJ indicating it is shutting down.");
+        kit.peerGroup().broadcastTransaction(escrow.tx);
     }
 
     @Override
     public boolean destroy() throws Exception {
-        if(wallet!=null && walletFile!=null && (walletFile.exists() || walletFile.createNewFile()) && walletFile.canWrite()) {
-            wallet.saveToFile(walletFile);
-        } else {
-            LOG.warning("Unable to save wallet.");
+        // WalletAppKit auto-saves the wallet (default) and persists the SPV chain file itself;
+        // stopAsync()/awaitTerminated() flushes both to disk.
+        if (kit != null) {
+            kit.stopAsync();
+            kit.awaitTerminated();
         }
         return true;
     }
@@ -321,30 +342,5 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
     @Override
     public boolean destroyGracefully() throws Exception {
         return destroy();
-    }
-
-    /**
-     * Tests to see if the spvchain file has an operating system file lock on it. Useful for checking if your app
-     * is already running. If another copy of your app is running and you start the appkit anyway, an exception will
-     * be thrown during the startup process. Returns false if the chain file does not exist or is a directory.
-     */
-    public boolean isChainFileLocked() throws IOException {
-        RandomAccessFile file2 = null;
-        try {
-            File file = new File(service.getServiceDirectory(), "bitcoinj.spvchain");
-            if (!file.exists())
-                return false;
-            if (file.isDirectory())
-                return false;
-            file2 = new RandomAccessFile(file, "rw");
-            FileLock lock = file2.getChannel().tryLock();
-            if (lock == null)
-                return true;
-            lock.release();
-            return false;
-        } finally {
-            if (file2 != null)
-                file2.close();
-        }
     }
 }

@@ -52,7 +52,7 @@ public class BitcoinService extends BaseService {
             client = new BitcoinJClient(this);
         }
         try {
-            if(!client.init(p)) {
+            if(!client.init(config)) {
                 LOG.severe("Client initialization failed, exiting.");
                 return false;
             }

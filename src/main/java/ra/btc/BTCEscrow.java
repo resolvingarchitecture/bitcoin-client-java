@@ -1,7 +1,7 @@
 package ra.btc;
 
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.crypto.ECKey;
 
 import java.util.UUID;
 
