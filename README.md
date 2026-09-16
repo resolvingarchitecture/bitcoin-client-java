@@ -10,7 +10,7 @@ No support is provided for remote nodes nor SPV clients, neither are they expect
 * objectorange (Brian Taylor) - [GitHub](https://github.com/objectorange) | [LinkedIn](https://www.linkedin.com/in/decentralizationarchitect/) | brian@resolvingarchitecture.io PGP: 2FA3 9B12 DA50 BD7C E43C 3031 A15D FABB 2579 77DC
 
 ## Licensing
-Project does not recognize copyright laws, licensing not required.
+MIT License - see [LICENSE](LICENSE).
 
 ## Motivation
 With plenty of BTC wallets on the market and Decentralized Exchanges, why build another Bitcoin Client?
