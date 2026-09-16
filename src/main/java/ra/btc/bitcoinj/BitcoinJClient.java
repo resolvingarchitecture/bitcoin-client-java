@@ -1,11 +1,14 @@
 package ra.btc.bitcoinj;
 
+import org.bitcoinj.base.Address;
 import org.bitcoinj.base.BitcoinNetwork;
 import org.bitcoinj.base.Coin;
 import org.bitcoinj.base.ScriptType;
 import org.bitcoinj.base.Sha256Hash;
+import org.bitcoinj.base.exceptions.AddressFormatException;
 import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.Context;
+import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Transaction;
@@ -19,8 +22,10 @@ import org.bitcoinj.net.discovery.PeerDiscovery;
 import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
+import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyChainGroupStructure;
+import org.bitcoinj.wallet.Wallet;
 import ra.btc.BTCEscrow;
 import ra.btc.BitcoinClient;
 import ra.btc.BitcoinService;
@@ -36,6 +41,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -218,7 +224,80 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
                 }
                 break;
             }
+            case OPERATION_GET_BALANCE: {
+                Coin available = kit.wallet().getBalance(Wallet.BalanceType.AVAILABLE);
+                Coin estimated = kit.wallet().getBalance(Wallet.BalanceType.ESTIMATED);
+                e.setHeader(HEADER_AVAILABLE_SATS, String.valueOf(available.value));
+                e.setHeader(HEADER_BALANCE_SATS, String.valueOf(estimated.value));
+                break;
+            }
+            case OPERATION_GET_RECEIVE_ADDRESS: {
+                e.setHeader(HEADER_ADDRESS, kit.wallet().currentReceiveAddress().toString());
+                break;
+            }
+            case OPERATION_LIST_TRANSACTIONS: {
+                // Dependency-free encoding, not org.json: this module runs on plain-JVM hosts
+                // (the 1m5-core-java desktop daemon) as well as Android (via 1m5-remnant), and
+                // org.json is bundled on Android's boot classpath - adding the standalone
+                // org.json:json artifact here would duplicate those classes on the Android side,
+                // the exact `mergeDebugJavaResource`/checkDebugDuplicateClasses failure shape
+                // 1m5-remnant's step 1 already hit once with BouncyCastle (see its TODO.md).
+                // One record per line: txid|valueSats|confirmations|updateTimeMillis - none of
+                // these fields can themselves contain '|' or '\n'.
+                StringBuilder sb = new StringBuilder();
+                try {
+                    for (Transaction tx : kit.wallet().getTransactions(false)) {
+                        long valueSats = tx.getValue(kit.wallet()).value;
+                        int confirmations = tx.getConfidence().getDepthInBlocks();
+                        long updateTimeMillis = tx.getUpdateTime().getTime();
+                        sb.append(tx.getTxId()).append('|').append(valueSats).append('|')
+                                .append(confirmations).append('|').append(updateTimeMillis).append('\n');
+                    }
+                    e.addContent(sb.toString().getBytes(StandardCharsets.UTF_8));
+                } catch (ScriptException ex) {
+                    e.addErrorMessage("could not list transactions: " + ex.getMessage());
+                }
+                break;
+            }
+            case OPERATION_SEND: {
+                String addressStr = stringHeaderOrNull(e, HEADER_ADDRESS);
+                String amountStr = stringHeaderOrNull(e, HEADER_AMOUNT_SATS);
+                if (addressStr == null) {
+                    e.addErrorMessage("missing " + HEADER_ADDRESS);
+                    break;
+                }
+                try {
+                    Address address = Address.fromString(params, addressStr);
+                    long sats = Long.parseLong(amountStr);
+                    Wallet.SendResult result = kit.wallet().sendCoins(kit.peerGroup(), address, Coin.valueOf(sats));
+                    e.setHeader(HEADER_TXID, result.transaction().getTxId().toString());
+                } catch (AddressFormatException ex) {
+                    e.addErrorMessage("invalid address: " + addressStr);
+                } catch (NumberFormatException ex) {
+                    e.addErrorMessage("invalid amount: " + amountStr);
+                } catch (InsufficientMoneyException ex) {
+                    e.addErrorMessage("insufficient balance: need " + ex.missing + " more sats");
+                } catch (RuntimeException ex) {
+                    // Covers Wallet.TransactionCompletionException (itself a RuntimeException) and
+                    // anything else sendCoins/Address.fromString can throw unchecked.
+                    e.addErrorMessage("send failed: " + ex.getMessage());
+                }
+                break;
+            }
+            case OPERATION_SYNC_STATUS: {
+                boolean syncing = kit.peerGroup() != null && kit.peerGroup().getDownloadPeer() != null;
+                int bestHeight = kit.chain() != null ? kit.chain().getBestChainHeight() : -1;
+                e.setHeader(HEADER_SYNCING, String.valueOf(syncing));
+                e.setHeader(HEADER_BEST_HEIGHT, String.valueOf(bestHeight));
+                break;
+            }
         }
+    }
+
+    /** {@code null} if the header is absent - {@link Envelope#getHeader} returns {@code Object}, no plain string accessor. */
+    private static String stringHeaderOrNull(Envelope e, String name) {
+        Object v = e.getHeader(name);
+        return v != null ? String.valueOf(v) : null;
     }
 
     private void getBitcoinPeers() {

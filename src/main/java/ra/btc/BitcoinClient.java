@@ -8,6 +8,23 @@ public interface BitcoinClient {
 
     String OPERATION_BITCOIN_PEERS = "BITCOIN_PEERS";
 
+    // ** Wallet query/send - the operations a host actually needs for a real wallet UI, as
+    // opposed to the lower/upper-level use cases below, none of which are implemented yet. **
+    String OPERATION_GET_BALANCE = "GET_BALANCE";
+    String OPERATION_GET_RECEIVE_ADDRESS = "GET_RECEIVE_ADDRESS";
+    String OPERATION_LIST_TRANSACTIONS = "LIST_TRANSACTIONS";
+    String OPERATION_SEND = "SEND";
+    String OPERATION_SYNC_STATUS = "SYNC_STATUS";
+
+    // Request/response header names for the operations above.
+    String HEADER_BALANCE_SATS = "btc.balanceSats";
+    String HEADER_AVAILABLE_SATS = "btc.availableSats";
+    String HEADER_ADDRESS = "btc.address";
+    String HEADER_AMOUNT_SATS = "btc.amountSats";
+    String HEADER_TXID = "btc.txid";
+    String HEADER_SYNCING = "btc.syncing";
+    String HEADER_BEST_HEIGHT = "btc.bestHeight";
+
     // Lower Level Use Case Requests
     String OPERATION_CREATE_2_N_MULTISIG = "CREATE_2_N_MULTISIG";
     String OPERATION_CLOSE_2_N_MULTISIG = "CLOSE_2_N_MULTISIG";
