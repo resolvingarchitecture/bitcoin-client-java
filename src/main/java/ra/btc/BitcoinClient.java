@@ -6,8 +6,6 @@ import java.util.Properties;
 
 public interface BitcoinClient {
 
-    String OPERATION_BITCOIN_PEERS = "BITCOIN_PEERS";
-
     // ** Wallet query/send - the operations a host actually needs for a real wallet UI, as
     // opposed to the lower/upper-level use cases below, none of which are implemented yet. **
     String OPERATION_GET_BALANCE = "GET_BALANCE";
@@ -15,6 +13,16 @@ public interface BitcoinClient {
     String OPERATION_LIST_TRANSACTIONS = "LIST_TRANSACTIONS";
     String OPERATION_SEND = "SEND";
     String OPERATION_SYNC_STATUS = "SYNC_STATUS";
+
+    /**
+     * Broadcast an already-finalized, already-signed raw transaction (a plain node/relay
+     * operation - no wallet involved on this end at all, unlike {@link #OPERATION_SEND} which
+     * spends this client's own wallet funds). bitcoinj 0.17.1 has no BIP-174 PSBT support
+     * (confirmed against its actual source - no PSBT-related class exists anywhere in it), so
+     * a caller holding a PSBT must finalize and extract the raw transaction itself before
+     * submitting it here, same as {@code bitcoind}'s own {@code sendrawtransaction} RPC expects.
+     */
+    String OPERATION_BROADCAST_TRANSACTION = "BROADCAST_TRANSACTION";
 
     // Request/response header names for the operations above.
     String HEADER_BALANCE_SATS = "btc.balanceSats";
@@ -24,6 +32,8 @@ public interface BitcoinClient {
     String HEADER_TXID = "btc.txid";
     String HEADER_SYNCING = "btc.syncing";
     String HEADER_BEST_HEIGHT = "btc.bestHeight";
+    /** Request header for {@link #OPERATION_BROADCAST_TRANSACTION}: hex-encoded raw signed transaction bytes. */
+    String HEADER_RAW_TX_HEX = "btc.rawTxHex";
 
     // Lower Level Use Case Requests
     String OPERATION_CREATE_2_N_MULTISIG = "CREATE_2_N_MULTISIG";

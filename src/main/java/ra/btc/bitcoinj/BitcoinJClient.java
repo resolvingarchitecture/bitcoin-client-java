@@ -10,8 +10,10 @@ import org.bitcoinj.core.AbstractBlockChain;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.BitcoinSerializer;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionBroadcast;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.ECKey;
@@ -19,7 +21,6 @@ import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.net.BlockingClientManager;
 import org.bitcoinj.net.ClientConnectionManager;
 import org.bitcoinj.net.discovery.PeerDiscovery;
-import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptException;
@@ -30,9 +31,7 @@ import ra.btc.BTCEscrow;
 import ra.btc.BitcoinClient;
 import ra.btc.BitcoinService;
 import ra.common.Envelope;
-import ra.common.network.NetworkPeer;
 import ra.common.route.Route;
-import ra.common.service.Service;
 
 import javax.net.SocketFactory;
 import java.io.File;
@@ -41,14 +40,19 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
 /**
@@ -57,17 +61,21 @@ import java.util.logging.Logger;
  * {@link WalletAppKit} (bitcoinj 0.17.1 - package layout and constructors matching the working
  * reference in {@code 1m5-android}'s {@code WalletService}).
  *
- * <p>BitcoinJ must never connect to peers directly - all P2P connections should be routable
- * through whichever network this node is currently using (Tor/I2P/1M5), so BitcoinJ's own DNS
- * peer discovery is disabled ({@link #getPeers(long, Duration)} always returns {@code null};
- * peer addresses are meant to arrive from the RA network manager instead - see
- * {@link #getBitcoinPeers()}, still a TODO wire-up) and, when {@code ra.btc.socks.host}/
- * {@code ra.btc.socks.port} are configured, the peer group's connection manager is swapped for a
- * {@link BlockingClientManager} routed through that SOCKS proxy (bitcoinj's own
- * {@code BlockingClient} javadoc names this as the supported way to connect over a proxy - the
- * newer NIO transport it uses by default cannot).
+ * <p>Peer connectivity matches what {@code 1m5-android}'s {@code WalletService} actually does
+ * (checked directly against its current source 2026-09-19, not assumed from this class's own
+ * older comment, which claimed peer discovery was unconditionally disabled pending a
+ * {@code ra.networkmanager.NetworkManagerService} that was never built - dead code, removed):
+ * an explicit peer list (config's {@code ra.btc.peers}, comma-separated {@code host:port})
+ * is used when configured, via {@link StaticBitcoinPeerDiscovery}; otherwise
+ * {@link WalletAppKit}'s own default discovery (bitcoinj's built-in DNS-seed
+ * {@code MultiplexingDiscovery}) is left untouched, exactly {@code WalletService}'s own
+ * fallback. When {@code ra.btc.socks.host}/{@code ra.btc.socks.port} are configured (either
+ * way), the peer group's connection manager is swapped for a {@link BlockingClientManager}
+ * routed through that SOCKS proxy (bitcoinj's own {@code BlockingClient} javadoc names this as
+ * the supported way to connect over a proxy - the newer NIO transport it uses by default
+ * cannot) - this is how a deployment routes its Bitcoin P2P traffic over Tor/I2P.
  */
-public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
+public class BitcoinJClient implements BitcoinClient {
 
     private static final Logger LOG = Logger.getLogger(BitcoinJClient.class.getName());
 
@@ -78,6 +86,7 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
 
     private NetworkParameters params;
     private WalletAppKit kit;
+    private long broadcastTimeoutMs = 15_000;
 
     private final Map<UUID, BTCEscrow> escrows = new HashMap<>();
 
@@ -118,6 +127,8 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
         final int socksPort = parseIntOrDefault(config.getProperty("ra.btc.socks.port"), 0);
         final boolean useSocks = socksHost != null && !socksHost.isEmpty() && socksPort > 0;
 
+        broadcastTimeoutMs = parseLongOrDefault(config.getProperty("ra.btc.broadcastTimeoutMs"), 15_000);
+
         kit = new WalletAppKit(network, ScriptType.P2WPKH, KeyChainGroupStructure.BIP32, directory, "bitcoinj") {
             @Override
             protected PeerGroup createPeerGroup() {
@@ -142,12 +153,20 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
             return false;
         }
 
-        // We never want BitcoinJ to discover/connect to peers on its own (DNS or otherwise) -
-        // all peer addresses should be routed through the RA network manager, see getPeers().
         if (network == BitcoinNetwork.REGTEST) {
             kit.connectToLocalHost();
         } else {
-            kit.setDiscovery(this);
+            List<InetSocketAddress> explicitPeers = parsePeers(config.getProperty("ra.btc.peers"));
+            if (!explicitPeers.isEmpty()) {
+                LOG.info("Using explicit Bitcoin peers: " + explicitPeers);
+                kit.setDiscovery(new StaticBitcoinPeerDiscovery(explicitPeers));
+            } else {
+                LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - using BitcoinJ's "
+                        + "own default peer discovery, same fallback 1m5-android's WalletService uses.");
+                // Deliberately not calling kit.setDiscovery(...) here - leaving WalletAppKit's
+                // own PeerGroup default discovery (bitcoinj's built-in DNS-seed
+                // MultiplexingDiscovery) in place.
+            }
         }
         kit.setBlockingStartup(false);
 
@@ -169,6 +188,75 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
         } catch (NumberFormatException e) {
             return def;
         }
+    }
+    
+    private static long parseLongOrDefault(String value, long def) {
+        if (value == null || value.isEmpty()) return def;
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    /** Java 8 target (Android) - no {@code java.util.HexFormat} (Java 17+) available. */
+    private static byte[] decodeHex(String hex) {
+        if ((hex.length() & 1) != 0) {
+            throw new IllegalArgumentException("odd-length hex string");
+        }
+        byte[] out = new byte[hex.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            int hi = Character.digit(hex.charAt(i * 2), 16);
+            int lo = Character.digit(hex.charAt(i * 2 + 1), 16);
+            if (hi < 0 || lo < 0) {
+                throw new IllegalArgumentException("invalid hex character at position " + (i * 2));
+            }
+            out[i] = (byte) ((hi << 4) | lo);
+        }
+        return out;
+    }
+
+    /** {@code ra.btc.peers}: comma-separated {@code host:port} entries. Unparseable entries are skipped, logged, not fatal. */
+    private static List<InetSocketAddress> parsePeers(String value) {
+        List<InetSocketAddress> peers = new ArrayList<>();
+        if (value == null || value.isBlank()) return peers;
+        for (String entry : value.split(",")) {
+            String hostPort = entry.trim();
+            if (hostPort.isEmpty()) continue;
+            int colon = hostPort.lastIndexOf(':');
+            if (colon <= 0 || colon == hostPort.length() - 1) {
+                LOG.warning("skipping malformed ra.btc.peers entry (expected host:port): " + hostPort);
+                continue;
+            }
+            try {
+                String host = hostPort.substring(0, colon);
+                int port = Integer.parseInt(hostPort.substring(colon + 1));
+                peers.add(InetSocketAddress.createUnresolved(host, port));
+            } catch (NumberFormatException e) {
+                LOG.warning("skipping malformed ra.btc.peers entry (bad port): " + hostPort);
+            }
+        }
+        return peers;
+    }
+
+    /**
+     * Matches {@code 1m5-android}'s own {@code WalletService.StaticBitcoinPeerDiscovery} exactly
+     * - a fixed, operator-supplied peer list, no DNS lookups of its own.
+     */
+    private static final class StaticBitcoinPeerDiscovery implements PeerDiscovery {
+        private final List<InetSocketAddress> peers;
+
+        StaticBitcoinPeerDiscovery(List<InetSocketAddress> peers) {
+            this.peers = new ArrayList<>(peers);
+        }
+
+        @Override
+        public List<InetSocketAddress> getPeers(long services, Duration timeout) {
+            return new ArrayList<>(peers);
+        }
+
+        @Override
+        public void shutdown() {}
     }
 
     private static SocketFactory socksSocketFactory(String socksHost, int socksPort) {
@@ -213,17 +301,6 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
         Route route = e.getRoute();
         String operation = route.getOperation();
         switch(operation) {
-            case OPERATION_BITCOIN_PEERS: {
-                // Incoming Response from Bitcoin Peers request
-                Object nPeersObj = e.getValue(NetworkPeer.class.getName());
-                if(nPeersObj instanceof List) {
-                    List<NetworkPeer> nPeers = (List<NetworkPeer>)nPeersObj;
-                    for(NetworkPeer np : nPeers) {
-
-                    }
-                }
-                break;
-            }
             case OPERATION_GET_BALANCE: {
                 Coin available = kit.wallet().getBalance(Wallet.BalanceType.AVAILABLE);
                 Coin estimated = kit.wallet().getBalance(Wallet.BalanceType.ESTIMATED);
@@ -291,6 +368,51 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
                 e.setHeader(HEADER_BEST_HEIGHT, String.valueOf(bestHeight));
                 break;
             }
+            case OPERATION_BROADCAST_TRANSACTION: {
+                String rawTxHex = stringHeaderOrNull(e, HEADER_RAW_TX_HEX);
+                if (rawTxHex == null) {
+                    e.addErrorMessage("missing " + HEADER_RAW_TX_HEX);
+                    break;
+                }
+                byte[] raw;
+                try {
+                    raw = decodeHex(rawTxHex.trim());
+                } catch (IllegalArgumentException ex) {
+                    e.addErrorMessage("invalid raw transaction hex: " + ex.getMessage());
+                    break;
+                }
+                Transaction tx;
+                try {
+                    tx = new BitcoinSerializer(params).makeTransaction(ByteBuffer.wrap(raw));
+                } catch (RuntimeException ex) {
+                    // Transaction.read() throws bitcoinj's own ProtocolException for some
+                    // malformed inputs and a raw java.nio.BufferUnderflowException for others
+                    // (confirmed by actually triggering both, not assumed) - either way, the
+                    // hex decoded fine but the bytes aren't a valid transaction structure.
+                    e.addErrorMessage("could not parse raw transaction: " + ex.getMessage());
+                    break;
+                }
+                try {
+                    TransactionBroadcast broadcast = kit.peerGroup().broadcastTransaction(tx);
+                    try {
+                        // Bounded wait for real propagation confirmation, not just "we tried" -
+                        // still returns the txid on a timeout below, since the broadcast itself
+                        // was already sent and propagation simply takes time.
+                        broadcast.awaitRelayed().get(broadcastTimeoutMs, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException ignored) {
+                        LOG.info("broadcast of " + tx.getTxId() + " sent, not yet confirmed relayed after "
+                                + broadcastTimeoutMs + "ms - propagation continues in the background");
+                    }
+                    e.setHeader(HEADER_TXID, tx.getTxId().toString());
+                } catch (ExecutionException ex) {
+                    String reason = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                    e.addErrorMessage("broadcast rejected: " + reason);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    e.addErrorMessage("broadcast interrupted");
+                }
+                break;
+            }
         }
     }
 
@@ -298,28 +420,6 @@ public class BitcoinJClient implements BitcoinClient, PeerDiscovery {
     private static String stringHeaderOrNull(Envelope e, String name) {
         Object v = e.getHeader(name);
         return v != null ? String.valueOf(v) : null;
-    }
-
-    private void getBitcoinPeers() {
-        Envelope e = Envelope.documentFactory();
-        e.addRoute(BitcoinService.class, BitcoinClient.OPERATION_BITCOIN_PEERS);
-        e.addRoute("ra.networkmanager.NetworkManagerService", "PEERS_BY_SERVICE");
-        e.addNVP(Service.class.getName(), BitcoinService.class.getName());
-        service.send(e);
-    }
-
-    @Override
-    public List<InetSocketAddress> getPeers(long services, Duration timeout) throws PeerDiscoveryException {
-        // We never want BitcoinJ to attempt to make the connections directly to Peers,
-        // we want it to go through Network Manager in case it gets blocked (e.g. can switch to Tor)
-        LOG.info("BitcoinJ requesting peers...ignoring.");
-        return null;
-    }
-
-    @Override
-    public void shutdown() {
-        // Just ignore
-        LOG.info("BitcoinJ indicating it is shutting down.");
     }
 
     /**
