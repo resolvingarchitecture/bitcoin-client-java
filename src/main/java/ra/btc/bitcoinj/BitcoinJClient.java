@@ -11,6 +11,7 @@ import org.bitcoinj.core.Context;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.BitcoinSerializer;
+import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionBroadcast;
@@ -362,7 +363,20 @@ public class BitcoinJClient implements BitcoinClient {
                 break;
             }
             case OPERATION_SYNC_STATUS: {
-                boolean syncing = kit.peerGroup() != null && kit.peerGroup().getDownloadPeer() != null;
+                // A download peer being assigned is not "still syncing" - bitcoinj
+                // keeps one designated for ongoing chain-tip following long after
+                // the initial block download finishes, so that alone was true
+                // forever post-sync (a real, user-visible bug: the wallet screen's
+                // "Syncing..." text never went away even after real transactions
+                // were confirmed). Actually behind means the peer's own reported
+                // height is ahead of our chain's.
+                boolean syncing = false;
+                if (kit.peerGroup() != null && kit.chain() != null) {
+                    Peer downloadPeer = kit.peerGroup().getDownloadPeer();
+                    if (downloadPeer != null) {
+                        syncing = downloadPeer.getBestHeight() > kit.chain().getBestChainHeight();
+                    }
+                }
                 int bestHeight = kit.chain() != null ? kit.chain().getBestChainHeight() : -1;
                 int connectedPeers = kit.peerGroup() != null ? kit.peerGroup().getConnectedPeers().size() : 0;
                 e.setHeader(HEADER_SYNCING, String.valueOf(syncing));
