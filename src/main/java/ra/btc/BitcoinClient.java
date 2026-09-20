@@ -32,6 +32,7 @@ public interface BitcoinClient {
     String HEADER_TXID = "btc.txid";
     String HEADER_SYNCING = "btc.syncing";
     String HEADER_BEST_HEIGHT = "btc.bestHeight";
+    String HEADER_CONNECTED_PEERS = "btc.connectedPeers";
     /** Request header for {@link #OPERATION_BROADCAST_TRANSACTION}: hex-encoded raw signed transaction bytes. */
     String HEADER_RAW_TX_HEX = "btc.rawTxHex";
 

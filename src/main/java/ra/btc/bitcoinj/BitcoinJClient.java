@@ -364,8 +364,10 @@ public class BitcoinJClient implements BitcoinClient {
             case OPERATION_SYNC_STATUS: {
                 boolean syncing = kit.peerGroup() != null && kit.peerGroup().getDownloadPeer() != null;
                 int bestHeight = kit.chain() != null ? kit.chain().getBestChainHeight() : -1;
+                int connectedPeers = kit.peerGroup() != null ? kit.peerGroup().getConnectedPeers().size() : 0;
                 e.setHeader(HEADER_SYNCING, String.valueOf(syncing));
                 e.setHeader(HEADER_BEST_HEIGHT, String.valueOf(bestHeight));
+                e.setHeader(HEADER_CONNECTED_PEERS, String.valueOf(connectedPeers));
                 break;
             }
             case OPERATION_BROADCAST_TRANSACTION: {
