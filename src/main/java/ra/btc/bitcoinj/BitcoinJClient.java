@@ -11,7 +11,6 @@ import org.bitcoinj.core.Context;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.BitcoinSerializer;
-import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionBroadcast;
@@ -368,14 +367,20 @@ public class BitcoinJClient implements BitcoinClient {
                 // the initial block download finishes, so that alone was true
                 // forever post-sync (a real, user-visible bug: the wallet screen's
                 // "Syncing..." text never went away even after real transactions
-                // were confirmed). Actually behind means the peer's own reported
-                // height is ahead of our chain's.
+                // were confirmed). Comparing against a single peer's getBestHeight()
+                // has its own version of the same problem: that value is a snapshot
+                // from that peer's version handshake, never updated afterward, so
+                // one persistently-stale peer keeps "syncing" true forever even
+                // fully caught up (also observed on-device: stuck on CONNECTING with
+                // a healthy, growing peer count). getMostCommonChainHeight() is
+                // bitcoinj's own network-consensus signal - the mode across every
+                // connected peer, the same one it uses internally to decide whether
+                // to start a chain download at all - so it can't get stuck on one
+                // outlier and self-corrects as peers connect/disconnect.
                 boolean syncing = false;
-                if (kit.peerGroup() != null && kit.chain() != null) {
-                    Peer downloadPeer = kit.peerGroup().getDownloadPeer();
-                    if (downloadPeer != null) {
-                        syncing = downloadPeer.getBestHeight() > kit.chain().getBestChainHeight();
-                    }
+                if (kit.peerGroup() != null && kit.chain() != null && !kit.peerGroup().getConnectedPeers().isEmpty()) {
+                    int networkHeight = kit.peerGroup().getMostCommonChainHeight();
+                    syncing = networkHeight > kit.chain().getBestChainHeight();
                 }
                 int bestHeight = kit.chain() != null ? kit.chain().getBestChainHeight() : -1;
                 int connectedPeers = kit.peerGroup() != null ? kit.peerGroup().getConnectedPeers().size() : 0;
