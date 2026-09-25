@@ -10,6 +10,7 @@ import ra.common.service.ServiceStatusObserver;
 import ra.common.Config;
 import ra.common.tasks.TaskRunner;
 
+import java.net.Proxy;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -21,11 +22,24 @@ public class BitcoinService extends BaseService {
     private static final Logger LOG = Logger.getLogger(BitcoinService.class.getName());
 
     private BitcoinClient client;
+    private volatile Proxy pendingProxy;
 
     public BitcoinService() {}
 
     public BitcoinService(MessageProducer producer, ServiceStatusObserver observer) {
         super(producer, observer);
+    }
+
+    /**
+     * Staged and applied to {@code client} on the next {@link #start}, since
+     * {@code client} is a fresh instance every time (see {@link #start} below) -
+     * this outer service instance is what stays stable across a caller's
+     * restart-on-availability-change cycle (e.g. {@code network.onemfive.core.
+     * business.BitcoinService.reconcileNetworking}), so the proxy has to be
+     * staged here, not on the transient client. See {@link BitcoinClient#setProxy}.
+     */
+    public void setProxy(Proxy proxy) {
+        this.pendingProxy = proxy;
     }
 
     @Override
@@ -51,6 +65,7 @@ public class BitcoinService extends BaseService {
         } else {
             client = new BitcoinJClient(this);
         }
+        client.setProxy(pendingProxy);
         try {
             if(!client.init(config)) {
                 LOG.severe("Client initialization failed, exiting.");

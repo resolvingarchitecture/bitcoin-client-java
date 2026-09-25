@@ -26,6 +26,7 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptException;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyChainGroupStructure;
+import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 import ra.btc.BTCEscrow;
 import ra.btc.BitcoinClient;
@@ -69,11 +70,20 @@ import java.util.logging.Logger;
  * is used when configured, via {@link StaticBitcoinPeerDiscovery}; otherwise
  * {@link WalletAppKit}'s own default discovery (bitcoinj's built-in DNS-seed
  * {@code MultiplexingDiscovery}) is left untouched, exactly {@code WalletService}'s own
- * fallback. When {@code ra.btc.socks.host}/{@code ra.btc.socks.port} are configured (either
- * way), the peer group's connection manager is swapped for a {@link BlockingClientManager}
- * routed through that SOCKS proxy (bitcoinj's own {@code BlockingClient} javadoc names this as
- * the supported way to connect over a proxy - the newer NIO transport it uses by default
- * cannot) - this is how a deployment routes its Bitcoin P2P traffic over Tor/I2P.
+ * fallback. Bitcoin P2P traffic is routed through a SOCKS proxy either way it's supplied -
+ * {@link #setProxy}, preferred (a live proxy this node's own network layer already manages,
+ * e.g. {@code tor-client-java}'s {@code TorSocksRelay}), or the legacy {@code ra.btc.socks.host}/
+ * {@code ra.btc.socks.port} config strings for a caller with no live {@code Proxy} object to
+ * hand over - the peer group's connection manager is swapped for a {@link BlockingClientManager}
+ * routed through it (bitcoinj's own {@code BlockingClient} javadoc names this as the supported
+ * way to connect over a proxy - the newer NIO transport it uses by default cannot).
+ *
+ * <p>{@code ra.btc.noDirectPeers=true} forces an explicitly empty {@link StaticBitcoinPeerDiscovery}
+ * regardless of {@code ra.btc.peers} or any SOCKS config - the wallet still starts (balance,
+ * receive address, offline signing via {@link BitcoinClient#OPERATION_SEND_OFFLINE} all work
+ * from cached wallet state) but the {@link PeerGroup} makes zero connection attempts of its own.
+ * Used when this node has no acceptable network path for its own Bitcoin P2P traffic right now
+ * (e.g. no local Tor) but still needs to sign a spend for a peer to broadcast on its behalf.
  */
 public class BitcoinJClient implements BitcoinClient {
 
@@ -87,11 +97,18 @@ public class BitcoinJClient implements BitcoinClient {
     private NetworkParameters params;
     private WalletAppKit kit;
     private long broadcastTimeoutMs = 15_000;
+    private volatile Proxy externalProxy;
 
     private final Map<UUID, BTCEscrow> escrows = new HashMap<>();
 
     public BitcoinJClient(BitcoinService service) {
         this.service = service;
+    }
+
+    /** See {@link BitcoinClient#setProxy}. Must be called before {@link #init}. */
+    @Override
+    public void setProxy(Proxy proxy) {
+        this.externalProxy = proxy;
     }
 
     public BitcoinJClient(BitcoinService service, DeterministicSeed deterministicSeed) {
@@ -123,9 +140,11 @@ public class BitcoinJClient implements BitcoinClient {
         params = NetworkParameters.of(network);
         Context.propagate(new Context(params));
 
+        final Proxy proxy = externalProxy;
         final String socksHost = config.getProperty("ra.btc.socks.host");
         final int socksPort = parseIntOrDefault(config.getProperty("ra.btc.socks.port"), 0);
-        final boolean useSocks = socksHost != null && !socksHost.isEmpty() && socksPort > 0;
+        final boolean useSocks = proxy != null || (socksHost != null && !socksHost.isEmpty() && socksPort > 0);
+        final boolean noDirectPeers = "true".equalsIgnoreCase(config.getProperty("ra.btc.noDirectPeers"));
 
         broadcastTimeoutMs = parseLongOrDefault(config.getProperty("ra.btc.broadcastTimeoutMs"), 15_000);
 
@@ -135,8 +154,14 @@ public class BitcoinJClient implements BitcoinClient {
                 if (!useSocks) {
                     return super.createPeerGroup();
                 }
-                LOG.info("Routing Bitcoin P2P connections through SOCKS proxy " + socksHost + ":" + socksPort);
-                SocketFactory socksSocketFactory = socksSocketFactory(socksHost, socksPort);
+                SocketFactory socksSocketFactory;
+                if (proxy != null) {
+                    LOG.info("Routing Bitcoin P2P connections through supplied SOCKS proxy " + proxy);
+                    socksSocketFactory = socksSocketFactory(proxy);
+                } else {
+                    LOG.info("Routing Bitcoin P2P connections through SOCKS proxy " + socksHost + ":" + socksPort);
+                    socksSocketFactory = socksSocketFactory(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socksHost, socksPort)));
+                }
                 ClientConnectionManager connectionManager = new BlockingClientManager(socksSocketFactory);
                 return new SocksRoutedPeerGroup(network, vChain, connectionManager);
             }
@@ -155,6 +180,14 @@ public class BitcoinJClient implements BitcoinClient {
 
         if (network == BitcoinNetwork.REGTEST) {
             kit.connectToLocalHost();
+        } else if (noDirectPeers) {
+            // Explicitly empty, not merely absent: falling through to BitcoinJ's own DNS-seed
+            // discovery here would leak a direct clearnet connection attempt, defeating the
+            // whole reason this flag was set (no acceptable network path right now). The wallet
+            // itself still starts - balance/receive-address/offline signing all work from cached
+            // state - only the PeerGroup makes zero connection attempts.
+            LOG.info("ra.btc.noDirectPeers=true - wallet starting with zero peer discovery.");
+            kit.setDiscovery(new StaticBitcoinPeerDiscovery(java.util.Collections.emptyList()));
         } else {
             List<InetSocketAddress> explicitPeers = parsePeers(config.getProperty("ra.btc.peers"));
             if (!explicitPeers.isEmpty()) {
@@ -216,6 +249,12 @@ public class BitcoinJClient implements BitcoinClient {
         return out;
     }
 
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) sb.append(String.format("%02x", b));
+        return sb.toString();
+    }
+
     /** {@code ra.btc.peers}: comma-separated {@code host:port} entries. Unparseable entries are skipped, logged, not fatal. */
     private static List<InetSocketAddress> parsePeers(String value) {
         List<InetSocketAddress> peers = new ArrayList<>();
@@ -259,8 +298,7 @@ public class BitcoinJClient implements BitcoinClient {
         public void shutdown() {}
     }
 
-    private static SocketFactory socksSocketFactory(String socksHost, int socksPort) {
-        final Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socksHost, socksPort));
+    private static SocketFactory socksSocketFactory(Proxy proxy) {
         return new SocketFactory() {
             @Override
             public Socket createSocket() {
@@ -358,6 +396,32 @@ public class BitcoinJClient implements BitcoinClient {
                     // Covers Wallet.TransactionCompletionException (itself a RuntimeException) and
                     // anything else sendCoins/Address.fromString can throw unchecked.
                     e.addErrorMessage("send failed: " + ex.getMessage());
+                }
+                break;
+            }
+            case OPERATION_SEND_OFFLINE: {
+                String addressStr = stringHeaderOrNull(e, HEADER_ADDRESS);
+                String amountStr = stringHeaderOrNull(e, HEADER_AMOUNT_SATS);
+                if (addressStr == null) {
+                    e.addErrorMessage("missing " + HEADER_ADDRESS);
+                    break;
+                }
+                try {
+                    Address address = Address.fromString(params, addressStr);
+                    long sats = Long.parseLong(amountStr);
+                    Transaction tx = kit.wallet().sendCoinsOffline(SendRequest.to(address, Coin.valueOf(sats)));
+                    e.setHeader(HEADER_TXID, tx.getTxId().toString());
+                    e.setHeader(HEADER_RAW_TX_HEX, bytesToHex(tx.serialize()));
+                } catch (AddressFormatException ex) {
+                    e.addErrorMessage("invalid address: " + addressStr);
+                } catch (NumberFormatException ex) {
+                    e.addErrorMessage("invalid amount: " + amountStr);
+                } catch (InsufficientMoneyException ex) {
+                    e.addErrorMessage("insufficient balance: need " + ex.missing + " more sats");
+                } catch (RuntimeException ex) {
+                    // Covers Wallet.TransactionCompletionException (itself a RuntimeException) and
+                    // anything else sendCoinsOffline/Address.fromString can throw unchecked.
+                    e.addErrorMessage("offline send failed: " + ex.getMessage());
                 }
                 break;
             }

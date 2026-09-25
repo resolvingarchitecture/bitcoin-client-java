@@ -2,9 +2,20 @@ package ra.btc;
 
 import ra.common.Envelope;
 
+import java.net.Proxy;
 import java.util.Properties;
 
 public interface BitcoinClient {
+
+    /**
+     * Route P2P connections through a live SOCKS proxy this node's own network
+     * layer already manages (e.g. {@code tor-client-java}'s {@code
+     * TorSocksRelay}) instead of building one from {@code ra.btc.socks.host}/
+     * {@code ra.btc.socks.port} config strings. Call before {@link #init}.
+     * Default no-op - a client with no SOCKS notion (e.g. {@code
+     * LocalBitcoinClient}, talking to a local full node over RPC) ignores it.
+     */
+    default void setProxy(Proxy proxy) {}
 
     // ** Wallet query/send - the operations a host actually needs for a real wallet UI, as
     // opposed to the lower/upper-level use cases below, none of which are implemented yet. **
@@ -13,6 +24,22 @@ public interface BitcoinClient {
     String OPERATION_LIST_TRANSACTIONS = "LIST_TRANSACTIONS";
     String OPERATION_SEND = "SEND";
     String OPERATION_SYNC_STATUS = "SYNC_STATUS";
+
+    /**
+     * Same inputs as {@link #OPERATION_SEND} (spends this client's own wallet
+     * funds, per {@code HEADER_ADDRESS}/{@code HEADER_AMOUNT_SATS}) but signs
+     * and commits the spend locally ({@code Wallet.sendCoinsOffline}, bitcoinj's
+     * own offline-signing method) without ever touching a {@code PeerGroup} -
+     * no network involvement at all. Response carries the same
+     * {@link #HEADER_TXID} as {@link #OPERATION_SEND} plus
+     * {@link #HEADER_RAW_TX_HEX} (the signed raw transaction), so the caller can
+     * broadcast it however it needs to - locally when connected, or handed to a
+     * peer for {@link #OPERATION_BROADCAST_TRANSACTION} when this node has no
+     * direct/Tor path of its own. Committing the spend here (not only once a
+     * broadcast succeeds) matches {@code sendCoinsOffline}'s own contract and
+     * prevents a retry from double-spending the same coins.
+     */
+    String OPERATION_SEND_OFFLINE = "SEND_OFFLINE";
 
     /**
      * Broadcast an already-finalized, already-signed raw transaction (a plain node/relay

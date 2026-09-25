@@ -166,6 +166,78 @@ public class BitcoinServiceIntegrationTest {
     }
 
     @Test
+    public void sendOfflineToAnInvalidAddressFailsWithAnErrorMessage() {
+        BitcoinService service = startedService();
+        try {
+            Envelope e = Envelope.documentFactory();
+            e.addRoute(BitcoinService.class, BitcoinClient.OPERATION_SEND_OFFLINE);
+            e.setHeader(BitcoinClient.HEADER_ADDRESS, "not-a-real-address");
+            e.setHeader(BitcoinClient.HEADER_AMOUNT_SATS, "1000");
+            service.handleDocument(e);
+            assertNull(e.getHeader(BitcoinClient.HEADER_TXID));
+            assertNull(e.getHeader(BitcoinClient.HEADER_RAW_TX_HEX));
+            assertFalse(Envelope.getErrorMessages(e).isEmpty());
+        } finally {
+            service.gracefulShutdown();
+        }
+    }
+
+    @Test
+    public void sendOfflineWithInsufficientBalanceFailsWithAnErrorMessage() {
+        BitcoinService service = startedService();
+        try {
+            Envelope addrEnv = Envelope.documentFactory();
+            addrEnv.addRoute(BitcoinService.class, BitcoinClient.OPERATION_GET_RECEIVE_ADDRESS);
+            service.handleDocument(addrEnv);
+
+            Envelope e = Envelope.documentFactory();
+            e.addRoute(BitcoinService.class, BitcoinClient.OPERATION_SEND_OFFLINE);
+            e.setHeader(BitcoinClient.HEADER_ADDRESS, addrEnv.getHeader(BitcoinClient.HEADER_ADDRESS));
+            e.setHeader(BitcoinClient.HEADER_AMOUNT_SATS, "1000");
+            service.handleDocument(e);
+            assertNull(e.getHeader(BitcoinClient.HEADER_TXID));
+            assertNull(e.getHeader(BitcoinClient.HEADER_RAW_TX_HEX));
+            assertFalse(Envelope.getErrorMessages(e).isEmpty());
+        } finally {
+            service.gracefulShutdown();
+        }
+    }
+
+    /**
+     * {@code ra.btc.noDirectPeers=true} must still bring the wallet fully up (balance,
+     * receive address) - only the {@code PeerGroup}'s own connection attempts are
+     * suppressed, via an explicitly empty {@code StaticBitcoinPeerDiscovery} rather than
+     * bitcoinj's own DNS-seed default. See {@code BitcoinJClient}'s own javadoc for why
+     * "explicitly empty" (not merely "unset") matters here.
+     */
+    @Test
+    public void noDirectPeersStartsCleanlyWithZeroDiscoveryAndWalletStillWorks() {
+        Properties p = new Properties();
+        // REGTEST (the default when ra.env is unset, per every other test in this class) always
+        // calls kit.connectToLocalHost() ahead of the noDirectPeers check - not the path this
+        // test means to exercise, so force TESTNET here instead. No real testnet peer ever
+        // connects in this test environment (same "no live network needed" reasoning as every
+        // other test here) - the point under test is that discovery is set to an explicitly
+        // empty list, not that a connection is ever attempted.
+        p.setProperty("ra.env", "test");
+        p.setProperty("ra.btc.noDirectPeers", "true");
+        BitcoinService service = startedService(p);
+        try {
+            Envelope balanceEnv = Envelope.documentFactory();
+            balanceEnv.addRoute(BitcoinService.class, BitcoinClient.OPERATION_GET_BALANCE);
+            service.handleDocument(balanceEnv);
+            assertEquals("0", balanceEnv.getHeader(BitcoinClient.HEADER_AVAILABLE_SATS));
+
+            Envelope addrEnv = Envelope.documentFactory();
+            addrEnv.addRoute(BitcoinService.class, BitcoinClient.OPERATION_GET_RECEIVE_ADDRESS);
+            service.handleDocument(addrEnv);
+            assertNotNull(addrEnv.getHeader(BitcoinClient.HEADER_ADDRESS));
+        } finally {
+            service.gracefulShutdown();
+        }
+    }
+
+    @Test
     public void broadcastWithMissingRawTxHexFailsWithAnErrorMessage() {
         BitcoinService service = startedService();
         try {
