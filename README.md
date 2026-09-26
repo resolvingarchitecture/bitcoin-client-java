@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/resolvingarchitecture/bitcoin-client-java.svg?branch=master)](https://travis-ci.com/resolvingarchitecture/bitcoin-client-java)
+[![Build Status](https://travis-ci.com/resolvingarchitecture/bitcoin-java.svg?branch=master)](https://travis-ci.com/resolvingarchitecture/bitcoin-java)
 
 # Resolving Architecture - Bitcoin Client - Java
 Bitcoin Client as a Service
