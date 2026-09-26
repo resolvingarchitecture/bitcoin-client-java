@@ -23,6 +23,7 @@ public class BitcoinService extends BaseService {
 
     private BitcoinClient client;
     private volatile Proxy pendingProxy;
+    private volatile BitcoinClient.ProxiedHostResolver pendingSeedResolver;
 
     public BitcoinService() {}
 
@@ -40,6 +41,11 @@ public class BitcoinService extends BaseService {
      */
     public void setProxy(Proxy proxy) {
         this.pendingProxy = proxy;
+    }
+
+    /** Staged the same way and for the same reason as {@link #setProxy} - see {@link BitcoinClient#setSeedResolver}. */
+    public void setSeedResolver(BitcoinClient.ProxiedHostResolver resolver) {
+        this.pendingSeedResolver = resolver;
     }
 
     @Override
@@ -66,6 +72,7 @@ public class BitcoinService extends BaseService {
             client = new BitcoinJClient(this);
         }
         client.setProxy(pendingProxy);
+        client.setSeedResolver(pendingSeedResolver);
         try {
             if(!client.init(config)) {
                 LOG.severe("Client initialization failed, exiting.");

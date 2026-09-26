@@ -2,7 +2,10 @@ package ra.btc;
 
 import ra.common.Envelope;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Proxy;
+import java.time.Duration;
 import java.util.Properties;
 
 public interface BitcoinClient {
@@ -16,6 +19,28 @@ public interface BitcoinClient {
      * LocalBitcoinClient}, talking to a local full node over RPC) ignores it.
      */
     default void setProxy(Proxy proxy) {}
+
+    /**
+     * Resolves a hostname the same proxied way {@link #setProxy}'s SOCKS proxy already routes
+     * connections - never the local/system DNS resolver. {@code tor-client-java}'s {@code
+     * TorSocksRelay#resolve} is the real implementation this is built for (Tor's own SOCKS5
+     * {@code RESOLVE} extension).
+     */
+    @FunctionalInterface
+    interface ProxiedHostResolver {
+        InetAddress resolve(String hostname, Duration timeout) throws IOException;
+    }
+
+    /**
+     * Used for bitcoin peer discovery (bitcoinj's default DNS-seed {@code MultiplexingDiscovery})
+     * when no explicit {@code ra.btc.peers} is configured: without this, that discovery calls
+     * {@link InetAddress#getAllByName} directly, which ignores any proxy set via {@link
+     * #setProxy} entirely and always leaks a plain local DNS query - {@code java.net.Proxy} only
+     * affects {@code Socket}/{@code URLConnection} connect calls, never {@code InetAddress}
+     * resolution. Call before {@link #init}. Default no-op - a client with no proxied-DNS notion
+     * ignores it, same as an unset {@link #setProxy}.
+     */
+    default void setSeedResolver(ProxiedHostResolver resolver) {}
 
     // ** Wallet query/send - the operations a host actually needs for a real wallet UI, as
     // opposed to the lower/upper-level use cases below, none of which are implemented yet. **

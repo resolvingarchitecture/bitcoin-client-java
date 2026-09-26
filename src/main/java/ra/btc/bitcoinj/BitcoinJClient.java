@@ -21,6 +21,7 @@ import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.net.BlockingClientManager;
 import org.bitcoinj.net.ClientConnectionManager;
 import org.bitcoinj.net.discovery.PeerDiscovery;
+import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptException;
@@ -51,7 +52,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
@@ -67,10 +72,12 @@ import java.util.logging.Logger;
  * older comment, which claimed peer discovery was unconditionally disabled pending a
  * {@code ra.networkmanager.NetworkManagerService} that was never built - dead code, removed):
  * an explicit peer list (config's {@code ra.btc.peers}, comma-separated {@code host:port})
- * is used when configured, via {@link StaticBitcoinPeerDiscovery}; otherwise
- * {@link WalletAppKit}'s own default discovery (bitcoinj's built-in DNS-seed
- * {@code MultiplexingDiscovery}) is left untouched, exactly {@code WalletService}'s own
- * fallback. Bitcoin P2P traffic is routed through a SOCKS proxy either way it's supplied -
+ * is used when configured, via {@link StaticBitcoinPeerDiscovery}; otherwise, if a {@link
+ * #setSeedResolver} was supplied, bitcoinj's built-in DNS seed hostnames are resolved through it
+ * via {@link ProxiedDnsSeedDiscovery} (never local DNS); with neither, {@link WalletAppKit}'s own
+ * default discovery (bitcoinj's built-in DNS-seed {@code MultiplexingDiscovery}, which does
+ * resolve via local DNS) is left untouched, exactly {@code WalletService}'s own fallback. Bitcoin
+ * P2P traffic is routed through a SOCKS proxy either way it's supplied -
  * {@link #setProxy}, preferred (a live proxy this node's own network layer already manages,
  * e.g. {@code tor-client-java}'s {@code TorSocksRelay}), or the legacy {@code ra.btc.socks.host}/
  * {@code ra.btc.socks.port} config strings for a caller with no live {@code Proxy} object to
@@ -98,6 +105,7 @@ public class BitcoinJClient implements BitcoinClient {
     private WalletAppKit kit;
     private long broadcastTimeoutMs = 15_000;
     private volatile Proxy externalProxy;
+    private volatile BitcoinClient.ProxiedHostResolver externalSeedResolver;
 
     private final Map<UUID, BTCEscrow> escrows = new HashMap<>();
 
@@ -109,6 +117,12 @@ public class BitcoinJClient implements BitcoinClient {
     @Override
     public void setProxy(Proxy proxy) {
         this.externalProxy = proxy;
+    }
+
+    /** See {@link BitcoinClient#setSeedResolver}. Must be called before {@link #init}. */
+    @Override
+    public void setSeedResolver(BitcoinClient.ProxiedHostResolver resolver) {
+        this.externalSeedResolver = resolver;
     }
 
     public BitcoinJClient(BitcoinService service, DeterministicSeed deterministicSeed) {
@@ -193,12 +207,18 @@ public class BitcoinJClient implements BitcoinClient {
             if (!explicitPeers.isEmpty()) {
                 LOG.info("Using explicit Bitcoin peers: " + explicitPeers);
                 kit.setDiscovery(new StaticBitcoinPeerDiscovery(explicitPeers));
+            } else if (externalSeedResolver != null) {
+                LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - resolving BitcoinJ's "
+                        + "own DNS seeds through the supplied proxied resolver instead of local DNS.");
+                kit.setDiscovery(new ProxiedDnsSeedDiscovery(params.getDnsSeeds(), params.getPort(), externalSeedResolver));
             } else {
                 LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - using BitcoinJ's "
                         + "own default peer discovery, same fallback 1m5-android's WalletService uses.");
                 // Deliberately not calling kit.setDiscovery(...) here - leaving WalletAppKit's
                 // own PeerGroup default discovery (bitcoinj's built-in DNS-seed
-                // MultiplexingDiscovery) in place.
+                // MultiplexingDiscovery) in place. Only reached with no seed resolver supplied -
+                // a real leak (see ProxiedDnsSeedDiscovery's javadoc) but the same behavior this
+                // class has always had for a caller with no proxied-DNS notion.
             }
         }
         kit.setBlockingStartup(false);
@@ -292,6 +312,77 @@ public class BitcoinJClient implements BitcoinClient {
         @Override
         public List<InetSocketAddress> getPeers(long services, Duration timeout) {
             return new ArrayList<>(peers);
+        }
+
+        @Override
+        public void shutdown() {}
+    }
+
+    /**
+     * Resolves BitcoinJ's own DNS seed hostnames through a {@link BitcoinClient.ProxiedHostResolver}
+     * (e.g. {@code tor-client-java}'s {@code TorSocksRelay#resolve}) instead of {@code
+     * DnsDiscovery.DnsSeedDiscovery}'s {@code InetAddress.getAllByName} - which ignores any proxy
+     * set via {@link #setProxy} entirely (a {@code Proxy} object only affects {@code Socket}/
+     * {@code URLConnection} connects, never {@code InetAddress} resolution) and always resolves
+     * through the local/system DNS resolver, leaking this node's Bitcoin activity outside the
+     * proxy even when every peer connection afterward is correctly routed through it.
+     *
+     * <p>Each resolver call answers with a single address - Tor's SOCKS5 {@code RESOLVE}
+     * extension has no A-record-set equivalent, unlike a real DNS response - queried in parallel
+     * across all configured seeds (same pattern {@code MultiplexingDiscovery} itself uses), so
+     * one slow or unreachable seed doesn't hold up the others.
+     */
+    static final class ProxiedDnsSeedDiscovery implements PeerDiscovery {
+        private final String[] seeds;
+        private final int port;
+        private final BitcoinClient.ProxiedHostResolver resolver;
+
+        ProxiedDnsSeedDiscovery(String[] seeds, int port, BitcoinClient.ProxiedHostResolver resolver) {
+            this.seeds = seeds != null ? seeds : new String[0];
+            this.port = port;
+            this.resolver = resolver;
+        }
+
+        @Override
+        public List<InetSocketAddress> getPeers(long services, Duration timeout) throws PeerDiscoveryException {
+            if (seeds.length == 0) {
+                throw new PeerDiscoveryException("no DNS seeds configured for this network");
+            }
+            ExecutorService pool = Executors.newFixedThreadPool(seeds.length, r -> {
+                Thread t = new Thread(r, "Proxied DNS seed lookup");
+                t.setDaemon(true);
+                return t;
+            });
+            try {
+                List<Callable<InetSocketAddress>> tasks = new ArrayList<>();
+                for (String seed : seeds) {
+                    tasks.add(() -> new InetSocketAddress(resolver.resolve(seed, timeout), port));
+                }
+                List<Future<InetSocketAddress>> futures = pool.invokeAll(tasks, timeout.toMillis(), TimeUnit.MILLISECONDS);
+                List<InetSocketAddress> result = new ArrayList<>();
+                for (int i = 0; i < futures.size(); i++) {
+                    Future<InetSocketAddress> future = futures.get(i);
+                    if (future.isCancelled()) {
+                        LOG.info("proxied DNS seed lookup timed out: " + seeds[i]);
+                        continue;
+                    }
+                    try {
+                        result.add(future.get());
+                    } catch (ExecutionException e) {
+                        LOG.info("proxied DNS seed lookup failed for " + seeds[i] + ": " + e.getCause());
+                    }
+                }
+                if (result.isEmpty()) {
+                    throw new PeerDiscoveryException("no proxied DNS seed lookup returned a result in "
+                            + timeout.toMillis() + " ms");
+                }
+                return result;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new PeerDiscoveryException(e);
+            } finally {
+                pool.shutdownNow();
+            }
         }
 
         @Override
