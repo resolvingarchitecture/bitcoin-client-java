@@ -63,7 +63,7 @@ public class BitcoinService extends BaseService {
         try {
             config = Config.loadAll(p, "ra-btc.config");
         } catch (Exception e) {
-            LOG.severe(e.getLocalizedMessage());
+            LOG.log(java.util.logging.Level.SEVERE, "could not load ra-btc.config: " + e.getLocalizedMessage(), e);
             return false;
         }
         if(localNodeRunning()) {
@@ -79,7 +79,7 @@ public class BitcoinService extends BaseService {
                 return false;
             }
         } catch (Exception e) {
-            LOG.severe(e.getLocalizedMessage());
+            LOG.log(java.util.logging.Level.SEVERE, "Bitcoin client initialization failed: " + e.getLocalizedMessage(), e);
             return false;
         }
         updateStatus(ServiceStatus.RUNNING);

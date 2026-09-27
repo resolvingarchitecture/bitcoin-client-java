@@ -25,6 +25,7 @@ import org.bitcoinj.net.discovery.PeerDiscoveryException;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptException;
+import org.bitcoinj.wallet.CoinSelection;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.KeyChainGroupStructure;
 import org.bitcoinj.wallet.SendRequest;
@@ -162,76 +163,145 @@ public class BitcoinJClient implements BitcoinClient {
 
         broadcastTimeoutMs = parseLongOrDefault(config.getProperty("ra.btc.broadcastTimeoutMs"), 15_000);
 
-        kit = new WalletAppKit(network, ScriptType.P2WPKH, KeyChainGroupStructure.BIP32, directory, "bitcoinj") {
-            @Override
-            protected PeerGroup createPeerGroup() {
-                if (!useSocks) {
-                    return super.createPeerGroup();
+        /*
+         * Real, on-device/in-JVM finding: a network-mode restart in the same process ({@code
+         * network.onemfive.core.business.BitcoinService.refreshNetworkModeIfChanged()} calls
+         * {@code shutdown()} then immediately reconstructs a fresh {@code BitcoinJClient}/{@code
+         * WalletAppKit} pointed at the same wallet directory) can hit a real {@code
+         * OverlappingFileLockException} - not a rare theoretical case, reproduced repeatedly -
+         * either from {@code WalletAppKit.isChainFileLocked()}'s own {@code tryLock()} (its
+         * javadoc admits an exception can come from the startup process, but not that the check
+         * itself can throw one instead of returning {@code true}), or from deeper inside {@code
+         * WalletAppKit.startUp() -> SPVBlockStore}'s own lock acquisition once {@code
+         * awaitRunning()} is already underway. Both are the same underlying condition (this JVM's
+         * own just-shut-down kit hasn't fully released the lock yet) surfacing at two different
+         * call sites, so both are handled the same way: retry the *whole* attempt below -
+         * including reconstructing {@code kit} from scratch, since a once-failed {@code
+         * WalletAppKit} can't be restarted - rather than patching each call site separately.
+         */
+        final int maxAttempts = 3;
+        final long retryDelayMs = 250L;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            kit = new WalletAppKit(network, ScriptType.P2WPKH, KeyChainGroupStructure.BIP32, directory, "bitcoinj") {
+                @Override
+                protected void onSetupCompleted() {
+                    peerGroup().addConnectedEventListener((peer, count) ->
+                            LOG.info("Bitcoin peer connected count=" + count + " peerHeight=" + peer.getBestHeight()));
+                    peerGroup().addDisconnectedEventListener((peer, count) ->
+                            LOG.info("Bitcoin peer disconnected remaining=" + count
+                                    + " services=" + (peer.getPeerVersionMessage() == null ? "no handshake"
+                                    : peer.getPeerVersionMessage().services())));
+                    peerGroup().addBlocksDownloadedEventListener((peer, block, filtered, remaining) -> {
+                        int height = chain().getBestChainHeight();
+                        if (remaining == 0 || height % 10 == 0)
+                            LOG.info("Bitcoin sync height=" + height + " blocksRemaining=" + remaining);
+                    });
                 }
-                SocketFactory socksSocketFactory;
-                if (proxy != null) {
-                    LOG.info("Routing Bitcoin P2P connections through supplied SOCKS proxy " + proxy);
-                    socksSocketFactory = socksSocketFactory(proxy);
+
+                @Override
+                protected PeerGroup createPeerGroup() {
+                    if (!useSocks) {
+                        return super.createPeerGroup();
+                    }
+                    SocketFactory socksSocketFactory;
+                    if (proxy != null) {
+                        LOG.info("Routing Bitcoin P2P connections through supplied SOCKS proxy " + proxy);
+                        socksSocketFactory = socksSocketFactory(proxy);
+                    } else {
+                        LOG.info("Routing Bitcoin P2P connections through SOCKS proxy " + socksHost + ":" + socksPort);
+                        socksSocketFactory = socksSocketFactory(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socksHost, socksPort)));
+                    }
+                    BlockingClientManager connectionManager = new BlockingClientManager(socksSocketFactory) {
+                        @Override
+                        public org.bitcoinj.utils.ListenableCompletableFuture<java.net.SocketAddress> openConnection(
+                                java.net.SocketAddress address, org.bitcoinj.net.StreamConnection connection) {
+                            org.bitcoinj.utils.ListenableCompletableFuture<java.net.SocketAddress> result = super.openConnection(address, connection);
+                            result.whenComplete((connected, error) -> {
+                                if (error != null) LOG.log(java.util.logging.Level.WARNING, "Bitcoin SOCKS connection failed", error);
+                                else LOG.info("Bitcoin SOCKS connection established");
+                            });
+                            return result;
+                        }
+                    };
+                    connectionManager.setConnectTimeout(Duration.ofSeconds(45));
+                    PeerGroup peers = new SocksRoutedPeerGroup(network, vChain, connectionManager);
+                    peers.setConnectTimeout(Duration.ofSeconds(60));
+                    return peers;
+                }
+            };
+
+            if (restoreFromSeed != null) {
+                kit.restoreWalletFromSeed(restoreFromSeed);
+            } else if (restoreFromKey != null) {
+                kit.restoreWalletFromKey(restoreFromKey);
+            }
+
+            try {
+                if (kit.isChainFileLocked()) {
+                    LOG.severe("This service is already running and cannot be started twice.");
+                    return false;
+                }
+
+                if (network == BitcoinNetwork.REGTEST) {
+                    kit.connectToLocalHost();
+                } else if (noDirectPeers) {
+                    // Explicitly empty, not merely absent: falling through to BitcoinJ's own DNS-seed
+                    // discovery here would leak a direct clearnet connection attempt, defeating the
+                    // whole reason this flag was set (no acceptable network path right now). The wallet
+                    // itself still starts - balance/receive-address/offline signing all work from cached
+                    // state - only the PeerGroup makes zero connection attempts.
+                    LOG.info("ra.btc.noDirectPeers=true - wallet starting with zero peer discovery.");
+                    kit.setDiscovery(new StaticBitcoinPeerDiscovery(java.util.Collections.emptyList()));
                 } else {
-                    LOG.info("Routing Bitcoin P2P connections through SOCKS proxy " + socksHost + ":" + socksPort);
-                    socksSocketFactory = socksSocketFactory(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socksHost, socksPort)));
+                    List<InetSocketAddress> explicitPeers = parsePeers(config.getProperty("ra.btc.peers"));
+                    if (!explicitPeers.isEmpty()) {
+                        LOG.info("Using explicit Bitcoin peers: " + explicitPeers);
+                        kit.setDiscovery(new StaticBitcoinPeerDiscovery(explicitPeers));
+                    } else if (externalSeedResolver != null) {
+                        LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - resolving BitcoinJ's "
+                                + "own DNS seeds through the supplied proxied resolver instead of local DNS.");
+                        kit.setDiscovery(new ProxiedDnsSeedDiscovery(params.getDnsSeeds(), params.getPort(), externalSeedResolver));
+                    } else {
+                        LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - using BitcoinJ's "
+                                + "own default peer discovery, same fallback 1m5-android's WalletService uses.");
+                        // Deliberately not calling kit.setDiscovery(...) here - leaving WalletAppKit's
+                        // own PeerGroup default discovery (bitcoinj's built-in DNS-seed
+                        // MultiplexingDiscovery) in place. Only reached with no seed resolver supplied -
+                        // a real leak (see ProxiedDnsSeedDiscovery's javadoc) but the same behavior this
+                        // class has always had for a caller with no proxied-DNS notion.
+                    }
                 }
-                ClientConnectionManager connectionManager = new BlockingClientManager(socksSocketFactory);
-                return new SocksRoutedPeerGroup(network, vChain, connectionManager);
-            }
-        };
+                kit.setBlockingStartup(false);
 
-        if (restoreFromSeed != null) {
-            kit.restoreWalletFromSeed(restoreFromSeed);
-        } else if (restoreFromKey != null) {
-            kit.restoreWalletFromKey(restoreFromKey);
-        }
-
-        if (kit.isChainFileLocked()) {
-            LOG.severe("This service is already running and cannot be started twice.");
-            return false;
-        }
-
-        if (network == BitcoinNetwork.REGTEST) {
-            kit.connectToLocalHost();
-        } else if (noDirectPeers) {
-            // Explicitly empty, not merely absent: falling through to BitcoinJ's own DNS-seed
-            // discovery here would leak a direct clearnet connection attempt, defeating the
-            // whole reason this flag was set (no acceptable network path right now). The wallet
-            // itself still starts - balance/receive-address/offline signing all work from cached
-            // state - only the PeerGroup makes zero connection attempts.
-            LOG.info("ra.btc.noDirectPeers=true - wallet starting with zero peer discovery.");
-            kit.setDiscovery(new StaticBitcoinPeerDiscovery(java.util.Collections.emptyList()));
-        } else {
-            List<InetSocketAddress> explicitPeers = parsePeers(config.getProperty("ra.btc.peers"));
-            if (!explicitPeers.isEmpty()) {
-                LOG.info("Using explicit Bitcoin peers: " + explicitPeers);
-                kit.setDiscovery(new StaticBitcoinPeerDiscovery(explicitPeers));
-            } else if (externalSeedResolver != null) {
-                LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - resolving BitcoinJ's "
-                        + "own DNS seeds through the supplied proxied resolver instead of local DNS.");
-                kit.setDiscovery(new ProxiedDnsSeedDiscovery(params.getDnsSeeds(), params.getPort(), externalSeedResolver));
-            } else {
-                LOG.info("No explicit Bitcoin peers configured (ra.btc.peers) - using BitcoinJ's "
-                        + "own default peer discovery, same fallback 1m5-android's WalletService uses.");
-                // Deliberately not calling kit.setDiscovery(...) here - leaving WalletAppKit's
-                // own PeerGroup default discovery (bitcoinj's built-in DNS-seed
-                // MultiplexingDiscovery) in place. Only reached with no seed resolver supplied -
-                // a real leak (see ProxiedDnsSeedDiscovery's javadoc) but the same behavior this
-                // class has always had for a caller with no proxied-DNS notion.
+                kit.startAsync();
+                kit.awaitRunning();
+                LOG.info("BitcoinJ WalletAppKit is running.");
+                return true;
+            } catch (RuntimeException e) {
+                if (causedByOverlappingLock(e) && attempt < maxAttempts) {
+                    LOG.info("WalletAppKit startup hit this JVM's own prior instance still releasing its "
+                            + "chain-file lock (attempt " + attempt + "/" + maxAttempts + ") - retrying shortly");
+                    try {
+                        Thread.sleep(retryDelayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                    continue;
+                }
+                LOG.log(java.util.logging.Level.SEVERE, "BitcoinJ WalletAppKit failed to start: " + e.getMessage(), e);
+                return false;
             }
         }
-        kit.setBlockingStartup(false);
+        return false; // unreachable - the loop above always returns
+    }
 
-        kit.startAsync();
-        try {
-            kit.awaitRunning();
-        } catch (RuntimeException e) {
-            LOG.severe("BitcoinJ WalletAppKit failed to start: " + e.getMessage());
-            return false;
+    /** Walks {@code t}'s cause chain - see {@link #init}'s retry-loop comment for why this matters. */
+    private static boolean causedByOverlappingLock(Throwable t) {
+        for (Throwable cause = t; cause != null; cause = cause.getCause()) {
+            if (cause instanceof java.nio.channels.OverlappingFileLockException) return true;
         }
-        LOG.info("BitcoinJ WalletAppKit is running.");
-        return true;
+        return false;
     }
 
     private static int parseIntOrDefault(String value, int def) {
@@ -356,7 +426,11 @@ public class BitcoinJClient implements BitcoinClient {
             try {
                 List<Callable<InetSocketAddress>> tasks = new ArrayList<>();
                 for (String seed : seeds) {
-                    tasks.add(() -> new InetSocketAddress(resolver.resolve(seed, timeout), port));
+                    // SPV wallets need full blocks, bloom filters and witness support.
+                    // Keep service-filtered seed queries inside Tor, just like plain queries.
+                    long required = services | 1L | 4L | 8L;
+                    String filteredSeed = "x" + Long.toHexString(required) + "." + seed;
+                    tasks.add(() -> new InetSocketAddress(resolver.resolve(filteredSeed, timeout), port));
                 }
                 List<Future<InetSocketAddress>> futures = pool.invokeAll(tasks, timeout.toMillis(), TimeUnit.MILLISECONDS);
                 List<InetSocketAddress> result = new ArrayList<>();
@@ -465,6 +539,28 @@ public class BitcoinJClient implements BitcoinClient {
                 }
                 break;
             }
+            case OPERATION_LIST_PENDING_BROADCASTS: {
+                // One record per outgoing wallet transaction: txid|confidenceType|rawTxHex.
+                // Pending raw transactions let the core recover a locally committed send even
+                // when an older process died before its relay retry was persisted.
+                StringBuilder sb = new StringBuilder();
+                try {
+                    for (Transaction tx : kit.wallet().getTransactions(true)) {
+                        long valueSats = tx.getValue(kit.wallet()).value;
+                        if (valueSats >= 0) continue;
+                        org.bitcoinj.core.TransactionConfidence.ConfidenceType confidence =
+                                tx.getConfidence().getConfidenceType();
+                        String rawTxHex = confidence == org.bitcoinj.core.TransactionConfidence.ConfidenceType.PENDING
+                                ? bytesToHex(tx.serialize()) : "";
+                        sb.append(tx.getTxId()).append('|').append(confidence.name()).append('|')
+                                .append(rawTxHex).append('\n');
+                    }
+                    e.addContent(sb.toString().getBytes(StandardCharsets.UTF_8));
+                } catch (ScriptException ex) {
+                    e.addErrorMessage("could not list pending broadcasts: " + ex.getMessage());
+                }
+                break;
+            }
             case OPERATION_SEND: {
                 String addressStr = stringHeaderOrNull(e, HEADER_ADDRESS);
                 String amountStr = stringHeaderOrNull(e, HEADER_AMOUNT_SATS);
@@ -475,18 +571,27 @@ public class BitcoinJClient implements BitcoinClient {
                 try {
                     Address address = Address.fromString(params, addressStr);
                     long sats = Long.parseLong(amountStr);
-                    Wallet.SendResult result = kit.wallet().sendCoins(kit.peerGroup(), address, Coin.valueOf(sats));
+                    SendRequest req = useAllInputsIfRequested(e, applyFeeRate(e, addFeeOutput(e, SendRequest.to(address, Coin.valueOf(sats)))));
+                    Wallet.SendResult result = kit.wallet().sendCoins(kit.peerGroup(), req);
                     e.setHeader(HEADER_TXID, result.transaction().getTxId().toString());
                 } catch (AddressFormatException ex) {
                     e.addErrorMessage("invalid address: " + addressStr);
                 } catch (NumberFormatException ex) {
                     e.addErrorMessage("invalid amount: " + amountStr);
                 } catch (InsufficientMoneyException ex) {
-                    e.addErrorMessage("insufficient balance: need " + ex.missing + " more sats");
+                    e.setHeader(HEADER_MISSING_SATS, String.valueOf(ex.missing.value));
+                    e.addErrorMessage("insufficient balance: need " + ex.missing.value + " more sats");
+                } catch (Wallet.DustySendRequested ex) {
+                    // A real, on-device finding: at BitcoinChannel.HEADER_FEE_AMOUNT_SATS values
+                    // near 1m5-remnant-android's own dev-fee-eligibility floor (1% of a 10,000-15,000
+                    // sat send is 100-150 sats), the dev-fee output itself is below bitcoinj's dust
+                    // threshold and the whole transaction is rejected here - see that app's own
+                    // MIN_DEV_FEE_SATS floor, which exists precisely to keep callers from hitting this.
+                    e.addErrorMessage("send failed: an output is too small to relay (dust)");
                 } catch (RuntimeException ex) {
                     // Covers Wallet.TransactionCompletionException (itself a RuntimeException) and
                     // anything else sendCoins/Address.fromString can throw unchecked.
-                    e.addErrorMessage("send failed: " + ex.getMessage());
+                    e.addErrorMessage("send failed: " + ex);
                 }
                 break;
             }
@@ -500,7 +605,8 @@ public class BitcoinJClient implements BitcoinClient {
                 try {
                     Address address = Address.fromString(params, addressStr);
                     long sats = Long.parseLong(amountStr);
-                    Transaction tx = kit.wallet().sendCoinsOffline(SendRequest.to(address, Coin.valueOf(sats)));
+                    SendRequest req = useAllInputsIfRequested(e, applyFeeRate(e, addFeeOutput(e, SendRequest.to(address, Coin.valueOf(sats)))));
+                    Transaction tx = kit.wallet().sendCoinsOffline(req);
                     e.setHeader(HEADER_TXID, tx.getTxId().toString());
                     e.setHeader(HEADER_RAW_TX_HEX, bytesToHex(tx.serialize()));
                 } catch (AddressFormatException ex) {
@@ -508,11 +614,55 @@ public class BitcoinJClient implements BitcoinClient {
                 } catch (NumberFormatException ex) {
                     e.addErrorMessage("invalid amount: " + amountStr);
                 } catch (InsufficientMoneyException ex) {
-                    e.addErrorMessage("insufficient balance: need " + ex.missing + " more sats");
+                    e.setHeader(HEADER_MISSING_SATS, String.valueOf(ex.missing.value));
+                    e.addErrorMessage("insufficient balance: need " + ex.missing.value + " more sats");
+                } catch (Wallet.DustySendRequested ex) {
+                    e.addErrorMessage("offline send failed: an output is too small to relay (dust)");
                 } catch (RuntimeException ex) {
                     // Covers Wallet.TransactionCompletionException (itself a RuntimeException) and
                     // anything else sendCoinsOffline/Address.fromString can throw unchecked.
-                    e.addErrorMessage("offline send failed: " + ex.getMessage());
+                    e.addErrorMessage("offline send failed: " + ex);
+                }
+                break;
+            }
+
+            case OPERATION_ESTIMATE_SEND: {
+                String addressStr = stringHeaderOrNull(e, HEADER_ADDRESS);
+                String amountStr = stringHeaderOrNull(e, HEADER_AMOUNT_SATS);
+                if (addressStr == null) {
+                    e.addErrorMessage("missing " + HEADER_ADDRESS);
+                    break;
+                }
+                try {
+                    Address address = Address.fromString(params, addressStr);
+                    long sats = Long.parseLong(amountStr);
+                    SendRequest req = useAllInputsIfRequested(e, applyFeeRate(e, addFeeOutput(e, SendRequest.to(address, Coin.valueOf(sats)))));
+                    // completeTx alone (not sendCoins/sendCoinsOffline, neither of which this
+                    // calls) selects coins and computes the fee without ever calling commitTx -
+                    // no side effects, safe to call on every keystroke. See BitcoinClient's javadoc.
+                    kit.wallet().completeTx(req);
+                    // Transaction.getFee() (bitcoinj) returns null, not zero, if any selected
+                    // input's cached value is unknown - a real, on-device finding: this untested-
+                    // until-now success path (every existing test runs against an empty wallet,
+                    // which throws InsufficientMoneyException before ever reaching this line) threw
+                    // a bare NPE with no message the first time it ran against a real funded wallet.
+                    Coin fee = req.tx.getFee();
+                    if (fee == null) {
+                        e.addErrorMessage("estimate failed: could not determine the fee (an input's value is unknown)");
+                        break;
+                    }
+                    e.setHeader(HEADER_NETWORK_FEE_SATS, String.valueOf(fee.value));
+                } catch (AddressFormatException ex) {
+                    e.addErrorMessage("invalid address: " + addressStr);
+                } catch (NumberFormatException ex) {
+                    e.addErrorMessage("invalid amount: " + amountStr);
+                } catch (InsufficientMoneyException ex) {
+                    e.setHeader(HEADER_MISSING_SATS, String.valueOf(ex.missing.value));
+                    e.addErrorMessage("insufficient balance: need " + ex.missing.value + " more sats");
+                } catch (Wallet.DustySendRequested ex) {
+                    e.addErrorMessage("estimate failed: an output is too small to relay (dust)");
+                } catch (RuntimeException ex) {
+                    e.addErrorMessage("estimate failed: " + ex);
                 }
                 break;
             }
@@ -569,22 +719,29 @@ public class BitcoinJClient implements BitcoinClient {
                     break;
                 }
                 try {
+                    LOG.info("bitcoinj broadcast submitted txid=" + tx.getTxId()
+                            + " connectedPeers=" + kit.peerGroup().getConnectedPeers().size());
                     TransactionBroadcast broadcast = kit.peerGroup().broadcastTransaction(tx);
                     try {
                         // Bounded wait for real propagation confirmation, not just "we tried" -
-                        // still returns the txid on a timeout below, since the broadcast itself
-                        // was already sent and propagation simply takes time.
+                        // A timeout retains the durable retry: a write alone is not acceptance.
                         broadcast.awaitRelayed().get(broadcastTimeoutMs, TimeUnit.MILLISECONDS);
+                        LOG.info("bitcoinj broadcast relay acknowledged txid=" + tx.getTxId());
                     } catch (TimeoutException ignored) {
                         LOG.info("broadcast of " + tx.getTxId() + " sent, not yet confirmed relayed after "
                                 + broadcastTimeoutMs + "ms - propagation continues in the background");
+                        e.addErrorMessage("broadcast relay acknowledgement pending; retain transaction for retry");
                     }
                     e.setHeader(HEADER_TXID, tx.getTxId().toString());
                 } catch (ExecutionException ex) {
                     String reason = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                    LOG.log(java.util.logging.Level.WARNING, "bitcoinj broadcast rejected txid="
+                            + tx.getTxId() + " reason=" + reason, ex);
                     e.addErrorMessage("broadcast rejected: " + reason);
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
+                    LOG.log(java.util.logging.Level.WARNING, "bitcoinj broadcast interrupted txid="
+                            + tx.getTxId(), ex);
                     e.addErrorMessage("broadcast interrupted");
                 }
                 break;
@@ -596,6 +753,67 @@ public class BitcoinJClient implements BitcoinClient {
     private static String stringHeaderOrNull(Envelope e, String name) {
         Object v = e.getHeader(name);
         return v != null ? String.valueOf(v) : null;
+    }
+
+    /**
+     * See {@link BitcoinClient#HEADER_FEE_ADDRESS}: when both fee headers are present, adds a
+     * second output to {@code req}'s transaction paying the dev fee, in the same transaction as
+     * the primary send - {@code req} is returned unchanged (both headers absent) otherwise.
+     *
+     * <p>Deliberately re-wraps {@link AddressFormatException}/{@link NumberFormatException} as a
+     * plain {@link IllegalArgumentException} rather than letting either propagate as-is: {@code
+     * OPERATION_SEND}/{@code OPERATION_SEND_OFFLINE}'s own catch blocks for those two exact
+     * exception types report the *primary* address/amount by name, which would misattribute a bad
+     * fee header to the primary send instead.
+     */
+    private SendRequest addFeeOutput(Envelope e, SendRequest req) {
+        String feeAddressStr = stringHeaderOrNull(e, HEADER_FEE_ADDRESS);
+        String feeAmountStr = stringHeaderOrNull(e, HEADER_FEE_AMOUNT_SATS);
+        if (feeAddressStr == null || feeAmountStr == null) return req;
+        try {
+            Address feeAddress = Address.fromString(params, feeAddressStr);
+            long feeSats = Long.parseLong(feeAmountStr);
+            req.tx.addOutput(Coin.valueOf(feeSats), feeAddress);
+            return req;
+        } catch (AddressFormatException ex) {
+            throw new IllegalArgumentException("invalid fee address: " + feeAddressStr, ex);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("invalid fee amount: " + feeAmountStr, ex);
+        }
+    }
+
+    /**
+     * See {@link BitcoinClient#HEADER_FEE_RATE_SAT_PER_VBYTE}: when present, overrides bitcoinj's
+     * default fee-per-kb policy for this one request - {@code req} is returned unchanged otherwise.
+     * Same "re-wrap as IllegalArgumentException" reasoning as {@link #addFeeOutput}: a malformed
+     * rate must not be misattributed to the primary amount by the caller's {@code
+     * NumberFormatException} catch block.
+     */
+    private SendRequest applyFeeRate(Envelope e, SendRequest req) {
+        String rateStr = stringHeaderOrNull(e, HEADER_FEE_RATE_SAT_PER_VBYTE);
+        if (rateStr == null) return req;
+        try {
+            long satPerVByte = Long.parseLong(rateStr);
+            req.setFeePerVkb(Coin.valueOf(satPerVByte * 1000L));
+            return req;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("invalid fee rate: " + rateStr, ex);
+        }
+    }
+
+    /**
+     * See {@link BitcoinClient#HEADER_USE_ALL_INPUTS}: when {@code "true"}, replaces bitcoinj's
+     * default "select just enough" coin selection with one that unconditionally spends every
+     * candidate it's given - {@code req} is returned unchanged otherwise. Bitcoinj's own change
+     * logic still applies on top of this: if the requested outputs (plus the now-larger fee this
+     * forces) leave a sub-dust remainder, it's folded into the fee rather than becoming a change
+     * output - which is what makes a true zero-remainder max send possible with an extra (dev-fee)
+     * output, unlike {@code SendRequest.emptyWallet} (see {@link #addFeeOutput}'s javadoc).
+     */
+    private SendRequest useAllInputsIfRequested(Envelope e, SendRequest req) {
+        if (!"true".equals(stringHeaderOrNull(e, HEADER_USE_ALL_INPUTS))) return req;
+        req.coinSelector = (target, candidates) -> new CoinSelection(candidates);
+        return req;
     }
 
     /**

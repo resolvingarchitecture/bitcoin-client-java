@@ -47,6 +47,8 @@ public interface BitcoinClient {
     String OPERATION_GET_BALANCE = "GET_BALANCE";
     String OPERATION_GET_RECEIVE_ADDRESS = "GET_RECEIVE_ADDRESS";
     String OPERATION_LIST_TRANSACTIONS = "LIST_TRANSACTIONS";
+    /** Lists unconfirmed outgoing wallet transactions with their raw signed bytes for restart-safe rebroadcast. */
+    String OPERATION_LIST_PENDING_BROADCASTS = "LIST_PENDING_BROADCASTS";
     String OPERATION_SEND = "SEND";
     String OPERATION_SYNC_STATUS = "SYNC_STATUS";
 
@@ -65,6 +67,23 @@ public interface BitcoinClient {
      * prevents a retry from double-spending the same coins.
      */
     String OPERATION_SEND_OFFLINE = "SEND_OFFLINE";
+
+    /**
+     * A true dry run of {@link #OPERATION_SEND}/{@link #OPERATION_SEND_OFFLINE}: builds, selects
+     * coins for, and computes the fee of the same transaction {@code sendCoins}/{@code
+     * sendCoinsOffline} would ({@code Wallet.completeTx(SendRequest)}), but never commits or
+     * broadcasts it - repeatable with zero side effects (no coins get marked spent), unlike either
+     * of those, which is the whole point: a UI can call this on every keystroke while an amount is
+     * being typed. Same request headers as {@link #OPERATION_SEND} ({@link #HEADER_ADDRESS}/
+     * {@link #HEADER_AMOUNT_SATS}, optionally {@link #HEADER_FEE_ADDRESS}/
+     * {@link #HEADER_FEE_AMOUNT_SATS}). Response: {@link #HEADER_NETWORK_FEE_SATS} on success, or
+     * the same {@code x.error.message}/{@link #HEADER_MISSING_SATS} shape as a real send on
+     * failure (most commonly insufficient balance) - so a caller can shrink the amount by exactly
+     * {@link #HEADER_MISSING_SATS} and retry, the basis for computing a "max sendable" amount
+     * without bitcoinj's own {@code SendRequest.emptyWallet} (which silently drops any additional
+     * output - incompatible with also wanting a dev-fee output, see {@code BitcoinJClient}).
+     */
+    String OPERATION_ESTIMATE_SEND = "ESTIMATE_SEND";
 
     /**
      * Broadcast an already-finalized, already-signed raw transaction (a plain node/relay
@@ -87,6 +106,41 @@ public interface BitcoinClient {
     String HEADER_CONNECTED_PEERS = "btc.connectedPeers";
     /** Request header for {@link #OPERATION_BROADCAST_TRANSACTION}: hex-encoded raw signed transaction bytes. */
     String HEADER_RAW_TX_HEX = "btc.rawTxHex";
+    /**
+     * Optional on {@link #OPERATION_SEND}/{@link #OPERATION_SEND_OFFLINE}: adds a second output,
+     * paying this address, to the same transaction - the 1M5 dev fee, per 1m5-remnant-android's
+     * DESIGN.md §"Sending Bitcoin to Contacts". Requires {@link #HEADER_FEE_AMOUNT_SATS} too;
+     * either one alone is ignored (no fee output added).
+     */
+    String HEADER_FEE_ADDRESS = "btc.fee.address";
+    /** Sats sent to {@link #HEADER_FEE_ADDRESS} in the same transaction - see its javadoc. */
+    String HEADER_FEE_AMOUNT_SATS = "btc.fee.amountSats";
+    /** {@link #OPERATION_ESTIMATE_SEND} response: the computed miner/network fee, in sats. */
+    String HEADER_NETWORK_FEE_SATS = "btc.networkFeeSats";
+    /**
+     * Response header alongside an insufficient-balance {@code x.error.message}, on any of
+     * {@link #OPERATION_SEND}/{@link #OPERATION_SEND_OFFLINE}/{@link #OPERATION_ESTIMATE_SEND}:
+     * exactly how many more sats were needed - lets a caller retry with the amount reduced by
+     * precisely this much, rather than guessing or string-parsing the error message.
+     */
+    String HEADER_MISSING_SATS = "btc.missingSats";
+    /**
+     * Optional on {@link #OPERATION_SEND}/{@link #OPERATION_SEND_OFFLINE}/{@link
+     * #OPERATION_ESTIMATE_SEND}: a caller-chosen fee rate, in sats/vByte, overriding bitcoinj's own
+     * default fee-per-kb policy for this one request - the basis for a low/medium/high priority
+     * picker fed by a live mempool fee estimate. Absent: bitcoinj's default applies, unchanged.
+     */
+    String HEADER_FEE_RATE_SAT_PER_VBYTE = "btc.feeRateSatPerVByte";
+    /**
+     * Optional on {@link #OPERATION_SEND}/{@link #OPERATION_SEND_OFFLINE}/{@link
+     * #OPERATION_ESTIMATE_SEND}: {@code "true"} forces every spendable UTXO to be used as an input,
+     * regardless of whether the requested output amounts need them all - the basis for a true
+     * "send everything, no remainder" max send with an additional (dev-fee) output, which
+     * bitcoinj's own {@code SendRequest.emptyWallet} can't do (it silently drops any output beyond
+     * the first). Combined with output amounts that exactly account for the fee (see {@code
+     * BitcoinJClient}), this leaves nothing for bitcoinj to return as change.
+     */
+    String HEADER_USE_ALL_INPUTS = "btc.useAllInputs";
 
     // Lower Level Use Case Requests
     String OPERATION_CREATE_2_N_MULTISIG = "CREATE_2_N_MULTISIG";
