@@ -682,7 +682,14 @@ public class BitcoinJClient implements BitcoinClient {
                 // connected peer, the same one it uses internally to decide whether
                 // to start a chain download at all - so it can't get stuck on one
                 // outlier and self-corrects as peers connect/disconnect.
-                boolean syncing = false;
+                //
+                // Real, on-device finding: with zero connected peers (observed repeatedly - Tor
+                // circuit churn/peer drops are normal, not rare), this defaulted to false, i.e.
+                // "caught up" - the wallet screen showed "Synced at block N" with N a stale local
+                // height and no peer confirming the real network is anywhere near it. Zero peers
+                // means "unconfirmed," not "confirmed caught up" - defaults to true (still
+                // syncing/unverified) until a peer's own consensus height says otherwise.
+                boolean syncing = true;
                 if (kit.peerGroup() != null && kit.chain() != null && !kit.peerGroup().getConnectedPeers().isEmpty()) {
                     int networkHeight = kit.peerGroup().getMostCommonChainHeight();
                     syncing = networkHeight > kit.chain().getBestChainHeight();
